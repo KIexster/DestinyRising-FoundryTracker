@@ -2,7 +2,7 @@ import unittest,json,sys,os,tempfile,struct,re
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).parent/'src'))
-import tracker,adb_runtime,resources
+import tracker,adb_runtime,resources,memory_reader
 # gallery.UPDATE_BUILD: the reader messages that the window turns into "download the new version".
 UPDATE_BUILD=re.compile(r'Build (\S+) no validada\. Esta versión admite (\S+)\.')
 class DetectionTests(unittest.TestCase):
@@ -62,21 +62,23 @@ class RuntimeSearchTests(unittest.TestCase):
 CATALOG=dict(package='p',expected_patch='202610280026',engine_header_sha256='old',weapons=[dict(weapon_id='w1',achievement_id=1,name='W')],collections=[dict(id=1,name='C')])
 def fake_session(verified,patch_version,counters):
  class FakeSession:
-  header_sha='new';verified_engine=verified;runtime=0x1000;base=0;module_key=1;module_address=2;cache={}
+  header_sha='new';verified_engine=verified;runtime=0x1000;base=0;module_key=1;module_address=2;cache={};attr_keys={'Player':5};touched={0x7000};gathered=[]
   def __init__(self,*args):pass
+  def gather(self,pages):FakeSession.gathered.append(list(pages))
+  def q(self,a):return 0
   def locate(self,hints,status):return 0x1000
-  def module(self,name):return 2
+  def module(self,name,hint=None):FakeSession.hint=hint;return 2
   def modules(self):return 0
-  def dict_entries(self,a):return [(1,2)]
+  def dict_entries(self,a):return [(1,2),(5,20)]
   def module_attrs(self,a):return {'PATCH_VERSION':10,'Player':20}
   def string(self,a):return patch_version if a==10 else 'Game.Game'
   def typ(self,a):return 'PlayerAvatar'
   def counters(self,player):return counters()
   def close(self):pass
  return FakeSession
-def read_with(session):
+def read_with(session,warm=None):
  with patch.object(tracker,'discover',return_value=('s','42')),patch.object(tracker,'Session',session),patch.object(tracker,'command',return_value='42'):
-  return tracker.collect('adb',CATALOG)
+  return tracker.collect('adb',CATALOG,warm=warm)
 def broken():raise tracker.StructureError('No se reconoce la tabla de propiedades de esta build.')
 def maps(finished):return {'AttachmentProcess_weaponKillData':{'w1':5},'Achievement_listenAchiData':{},'Achievement_finishAchiData':finished}
 class UnverifiedBuildTests(unittest.TestCase):
@@ -98,6 +100,38 @@ class UnverifiedBuildTests(unittest.TestCase):
    path=Path(tmp)/'engine.json';path.write_text(json.dumps(dict(expected_patch='202611010000',engine=dict(runtime_offset='0x7600000'))),'utf-8')
    out=resources.with_engine_override(dict(expected_patch='old',engine=dict(runtime_offset='0x1',interp_modules=888)),path)
   self.assertEqual(out,dict(expected_patch='202611010000',engine=dict(runtime_offset='0x7600000',interp_modules=888)))
+def page_reader():
+ """A FastReader whose shell returns page p filled with the byte (p//4096)%256, logging every command."""
+ r=object.__new__(memory_reader.FastReader);r.ranges=[(0x1000,0x5000,'r--p'),(0x5000,0x6000,'---p'),(0x8000,0x9000,'rw-p')];r.cache={};r.pid=1;r.calls=0;r.cmds=[]
+ def transfer(cmd,n):
+  r.cmds.append(cmd);out=b''.join(bytes([(int(s)+j)%256])*4096 for s,c in re.findall(r'skip=(\d+) count=(\d+)',cmd) for j in range(int(c)))
+  if len(out)!=n:raise ValueError('short')
+  return out
+ r.transfer=transfer;return r
+class BatchedReadTests(unittest.TestCase):
+ def test_gather_groups_consecutive_pages_and_skips_unmapped(self):
+  r=page_reader();r.gather([0x1000,0x1008,0x2fff,0x4000,0x5000,0x7000,0x8000])
+  self.assertEqual(len(r.cmds),1);self.assertEqual(re.findall(r'skip=(\d+) count=(\d+)',r.cmds[0]),[('1','2'),('4','1'),('8','1')])
+  self.assertEqual(sorted(r.cache),[0x1000,0x2000,0x4000,0x8000]);self.assertTrue(all(r.cache[p][0]==p//4096 for p in r.cache))
+ def test_failed_gather_leaves_pages_to_read(self):
+  r=page_reader();r.transfer=lambda cmd,n:(_ for _ in ()).throw(ValueError('short'));r.gather([0x1000,0x2000])
+  self.assertEqual(r.cache,{})
+ def test_read_spanning_pages_is_one_round_trip(self):
+  r=page_reader();data=r.read(0x1ff0,0x2020)
+  self.assertEqual(len(r.cmds),1);self.assertEqual(data,bytes([1])*16+bytes([2])*4096+bytes([3])*4096+bytes([4])*16)
+  self.assertEqual(r.touched,{0x1000,0x2000,0x3000,0x4000})
+ def test_unmapped_read_still_fails(self):
+  with self.assertRaisesRegex(ValueError,'Unmapped'):page_reader().read(0x5008,8)
+ def test_warm_pages_used_only_for_the_same_game_process(self):
+  session=fake_session(True,'202610280026',lambda:maps({}));session.gathered=[]
+  data=read_with(session,dict(key='s:42:new',module=1,pages=[0x7000,0x9000]));self.assertEqual(session.gathered,[[0x7000,0x9000]]);self.assertEqual(session.hint,1)
+  self.assertEqual(data['warm'],dict(key='s:42:new',module=1,pages=[0x7000]))
+  session.gathered=[];read_with(session,dict(key='s:41:new',module=1,pages=[0x7000]));self.assertEqual(session.gathered,[]);self.assertIsNone(session.hint)
+ def test_module_search_stops_at_the_first_match(self):
+  s=object.__new__(tracker.Session);keys=list(range(1000,1000+300));names={k:f'm{k}' for k in keys};names[1070]='Game.Game';fetched=[]
+  s.modules=lambda:0;s.dict_entries=lambda a:[(k,k+5000) for k in keys];s.gather=lambda ks:fetched.append(len(ks));s.string=lambda k:names[k]
+  self.assertEqual(s.module('Game.Game'),6070);self.assertEqual(fetched,[64,64])
+  fetched.clear();self.assertEqual(s.module('Game.Game',1070),6070);self.assertEqual(fetched,[])
 class AdbRuntimeTests(unittest.TestCase):
  def test_source_run_uses_bundled_adb_on_private_port(self):
   with patch.dict(os.environ),patch.object(adb_runtime,'BASE',Path('src_dir')):

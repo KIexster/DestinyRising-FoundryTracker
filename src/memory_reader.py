@@ -1,4 +1,5 @@
-import struct,subprocess,concurrent.futures,atexit,base64
+import struct,subprocess,concurrent.futures,atexit,base64,bisect
+GATHER_RUNS=48
 class Reader:
  def read(self,a,n):
   if n<0 or n>16*1024*1024:raise ValueError('Bounded read exceeded')
@@ -48,13 +49,12 @@ class FastReader(Reader):
    self.channel=None
   executor=getattr(self,'executor',None)
   if executor:executor.shutdown(wait=False,cancel_futures=True)
- def block(self,start,count):
+ def transfer(self,cmd,n):
+  """One round trip on the root shell: cmd must write exactly n bytes, which come back base64-encoded."""
   if not getattr(self,'channel',None):
    self.channel=subprocess.Popen([self.adb,'-s',self.serial,'shell','-T','su','0','sh'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
    self.executor=concurrent.futures.ThreadPoolExecutor(max_workers=1);atexit.register(self.close)
-  n=count*4096
-  cmd=f"dd if=/proc/{self.pid}/mem bs=4096 skip={start//4096} count={count} status=none 2>/dev/null | base64; printf 'READ_END\\n'\n"
-  self.channel.stdin.write(cmd.encode('ascii'));self.channel.stdin.flush()
+  self.channel.stdin.write(f"({cmd}) 2>/dev/null | base64; printf 'READ_END\\n'\n".encode('ascii'));self.channel.stdin.flush()
   def receive():
    lines=[];total=0
    while True:
@@ -71,18 +71,43 @@ class FastReader(Reader):
   except Exception:self.close();raise
   if len(data)!=n:raise ValueError('Read failed or short')
   return data
-
+ def block(self,start,count):
+  return self.transfer(f'dd if=/proc/{self.pid}/mem bs=4096 skip={start//4096} count={count} status=none',count*4096)
+ def span_of(self,pg):
+  """The readable mapping holding page pg (maps are sorted and disjoint, so a bisect finds it)."""
+  if len(getattr(self,'starts',()))!=len(self.ranges):self.starts=[r[0] for r in self.ranges]
+  i=bisect.bisect_right(self.starts,pg)-1
+  r=self.ranges[i] if i>=0 else None
+  return r if r and pg+4096<=r[1] and r[2].startswith('r') else None
+ def gather(self,addresses):
+  """Fetch the pages of many scattered addresses in a few round trips (runs of consecutive pages share one dd).
+  A batch that fails is dropped; read() then fetches those pages one by one as before."""
+  runs=[]
+  for pg in sorted({a&~4095 for a in addresses}-self.cache.keys()):
+   span=self.span_of(pg)
+   if not span:continue
+   if runs and pg==runs[-1][0]+runs[-1][1]*4096 and runs[-1][2] is span:runs[-1][1]+=1
+   else:runs.append([pg,1,span])
+  for i in range(0,len(runs),GATHER_RUNS):
+   batch=runs[i:i+GATHER_RUNS]
+   try:data=self.transfer(';'.join(f'dd if=/proc/{self.pid}/mem bs=4096 skip={s//4096} count={c} status=none' for s,c,_ in batch),sum(c for _,c,_ in batch)*4096)
+   except ValueError:continue
+   at=0;self.calls+=1
+   for s,c,_ in batch:
+    for j in range(c):self.cache[s+j*4096]=data[at:at+4096];at+=4096
  def read(self,a,n):
   if n<0 or n>16*1024*1024:raise ValueError('Bounded read exceeded')
-  out=bytearray()
+  out=bytearray();touched=self.__dict__.setdefault('touched',set())
   while n:
-   pg=a&~4095;off=a-pg;take=min(n,4096-off)
+   pg=a&~4095;off=a-pg;take=min(n,4096-off);touched.add(pg)
    if pg not in self.cache:
-    span=next((r for r in self.ranges if r[0]<=pg and pg+4096<=r[1] and r[2].startswith('r')),None)
+    span=self.span_of(pg)
     if not span:raise ValueError(f'Unmapped pointer {a:x}')
-    start=max(span[0],pg&~4095);end=min(span[1],start+4096);count=(end-start)//4096
-    payload=self.block(start,count)
-    for j in range(count):self.cache[start+j*4096]=payload[j*4096:(j+1)*4096]
+    # Every page this read still needs from the same mapping comes in the same round trip.
+    last=min(span[1],(a+n+4095)&~4095);count=1
+    while pg+count*4096<last and pg+count*4096 not in self.cache:count+=1
+    payload=self.block(pg,count)
+    for j in range(count):self.cache[pg+j*4096]=payload[j*4096:(j+1)*4096]
     self.calls+=1
    out+=self.cache[pg][off:off+take];a+=take;n-=take
   return bytes(out)

@@ -8,6 +8,7 @@ ENGINE=dict(runtime_offset=0x75f1d08,runtime_head=0x28,interp_runtime=40,interp_
 # _PyRuntime starts with _initialized, preinitializing, preinitialized, core_initialized and initialized.
 RUNTIME_HEADER=struct.pack('<5i',1,0,1,1,1)
 SCAN_PAGES=64
+MODULE_BATCH=64
 class TrackerError(Exception):pass
 class StructureError(TrackerError):
  """Memory without the expected layout. On an unverified build it means the reader needs an update."""
@@ -78,17 +79,29 @@ class Session(FastReader):
     if i%8==0 and interp and interp==main and 1<=next_id<=64 and self.is_runtime(start+i):self.runtime=start+i;return self.runtime-self.base
     i=data.find(RUNTIME_HEADER,i+4)
   raise StructureError('No se encontró el intérprete del juego en memoria.')
- def module(self,name):
-  for k,v in self.dict_entries(self.modules()):
-   if self.string(k)==name:
-    self.module_key=k;self.module_address=v;return v
+ def module(self,name,hint=None):
+  entries=self.dict_entries(self.modules());values=dict(entries)
+  # A refresh of the same game process checks the key found last time before reading thousands of module names.
+  if hint in values and self.string(hint)==name:
+   self.module_key=hint;self.module_address=values[hint];return values[hint]
+  # Otherwise the names are fetched MODULE_BATCH at a time and the search stops at the first match.
+  for i in range(0,len(entries),MODULE_BATCH):
+   batch=entries[i:i+MODULE_BATCH];self.gather([k for k,v in batch])
+   for k,v in batch:
+    if self.string(k)==name:
+     self.module_key=k;self.module_address=v;return v
   raise TrackerError('El juego aún no tiene cargado el módulo del personaje.')
  def modules(self):
   # Stable interpreter list, independent of whether a Python thread currently owns the GIL.
   e=self.engine;interp=self.q(self.runtime+e['runtime_head'])
   if not interp or self.q(interp+e['interp_runtime'])!=self.runtime:raise StructureError('Intérprete no compatible o todavía sin inicializar.')
   return self.q(interp+e['interp_modules'])
- def module_attrs(self,a):return {self.string(k):v for k,v in self.dict_entries(self.q(a+16)) if self.typ(k)=='str'}
+ def module_attrs(self,a):
+  """Module globals by name; the key objects are kept in attr_keys so later checks can compare pointers."""
+  entries=self.dict_entries(self.q(a+16));self.gather([k for k,v in entries]);self.attr_keys={};values=dict(entries)
+  for k,v in entries:
+   if self.typ(k)=='str':self.attr_keys[self.string(k)]=k
+  return {name:values[k] for name,k in self.attr_keys.items()}
  def cppstr(self,a):
   flag=self.read(a,1)[0];n=self.q(a+8) if flag&1 else flag>>1;p=self.q(a+16) if flag&1 else a+1
   if n>100000:raise StructureError('Cadena fuera de límites; lectura detenida.')
@@ -130,15 +143,19 @@ class Session(FastReader):
    node=self.q(node)
   if not wanted.issubset(out):raise TrackerError('Faltan propiedades del personaje. Espera a terminar la carga.')
   return out
-def collect(adb,catalog,status=lambda message:None,hints=None):
- """hints: {libGame header sha256: runtime offset as hex} remembered from earlier reads."""
+def collect(adb,catalog,status=lambda message:None,hints=None,warm=None):
+ """hints: {libGame header sha256: runtime offset as hex} remembered from earlier reads.
+ warm: the 'warm' entry of the previous result. Its pages are fetched fresh up front in a few round trips,
+ so a refresh of the same game process costs a few batches instead of hundreds of single-page reads."""
  start=time.monotonic();status('Buscando el juego en MuMu…');serial,pid=discover(adb,catalog['package']);session=None;patch=None;verified=True
  try:
   session=Session(adb,serial,pid,catalog);verified=session.verified_engine;status('Localizando el personaje y comprobando la build…')
+  key=f'{serial}:{pid}:{session.header_sha}';same=isinstance(warm,dict) and warm.get('key')==key
+  if same:session.gather(warm.get('pages') or [])
   try:known=[int((hints or {})[session.header_sha],16)]
   except (KeyError,ValueError,TypeError):known=[]
   session.locate(known,status)
-  attrs=session.module_attrs(session.module('Game.Game'))
+  attrs=session.module_attrs(session.module('Game.Game',warm.get('module') if same else None))
   patch=session.string(attrs['PATCH_VERSION']);verified=verified and patch==catalog['expected_patch']
   if not verified:status('Build sin verificar: comprobando la estructura antes de mostrar nada…')
   player=attrs.get('Player')
@@ -148,7 +165,7 @@ def collect(adb,catalog,status=lambda message:None,hints=None):
   if not current or current[0]!=pid:raise TrackerError('El juego se cerró o reinició. Vuelve a actualizar.')
   session.cache.clear()
   if (session.module_key,session.module_address) not in session.dict_entries(session.modules()) or session.string(session.module_key)!='Game.Game':raise TrackerError('El modulo cambio durante la lectura.')
-  if session.module_attrs(session.module_address).get('Player')!=player:raise TrackerError('Cambió el personaje durante la lectura. Actualiza de nuevo.')
+  if (session.attr_keys['Player'],player) not in session.dict_entries(session.q(session.module_address+16)):raise TrackerError('Cambió el personaje durante la lectura. Actualiza de nuevo.')
   kills=maps['AttachmentProcess_weaponKillData'];progress=maps['Achievement_listenAchiData'];finished=maps['Achievement_finishAchiData'];rows=[];summary=[]
   if any(not 0<=v<=10**12 for v in kills.values()):raise StructureError('Se rechazaron contadores fuera de rango.')
   for item in catalog['weapons']:
@@ -159,7 +176,7 @@ def collect(adb,catalog,status=lambda message:None,hints=None):
   # On a build nobody has checked yet, every achievement must agree with its weapons before anything is shown.
   if not verified and not all(x['consistent'] for x in summary):raise StructureError('Los logros no cuadran con las armas en una build sin verificar.')
   engine=dict(header_sha256=session.header_sha,runtime_offset=hex(session.runtime-session.base))
-  return dict(captured_at=datetime.datetime.now().astimezone().isoformat(),serial=serial,package=catalog['package'],patch=patch,pid=pid,verified_build=verified,engine=engine,weapon_counter_count=len(kills),duration_seconds=round(time.monotonic()-start,1),summary=summary,rows=rows)
+  return dict(captured_at=datetime.datetime.now().astimezone().isoformat(),serial=serial,package=catalog['package'],patch=patch,pid=pid,verified_build=verified,engine=engine,weapon_counter_count=len(kills),duration_seconds=round(time.monotonic()-start,1),summary=summary,rows=rows,warm=dict(key=key,module=session.module_key,pages=sorted(session.touched)))
  except StructureError as exc:
   if not verified:raise outdated(patch,catalog) from exc
   raise
