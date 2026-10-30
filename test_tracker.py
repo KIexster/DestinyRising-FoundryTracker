@@ -2,7 +2,7 @@ import unittest,json,sys,os,tempfile,struct,re,subprocess,time
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).parent/'src'))
-import tracker,adb_runtime,resources,memory_reader
+import tracker,adb_runtime,resources,memory_reader,history
 # gallery.UPDATE_BUILD: the reader messages that the window turns into "download the new version".
 UPDATE_BUILD=re.compile(r'Build (\S+) no validada\. Esta versión admite (\S+)\.')
 class DetectionTests(unittest.TestCase):
@@ -160,10 +160,39 @@ class BatchedReadTests(unittest.TestCase):
   s.modules=lambda:0;s.dict_entries=lambda a:[(k,k+5000) for k in keys];s.gather=lambda ks:fetched.append(len(ks));s.string=lambda k:names[k]
   self.assertEqual(s.module('Game.Game'),6070);self.assertEqual(fetched,[64,64])
   fetched.clear();self.assertEqual(s.module('Game.Game',1070),6070);self.assertEqual(fetched,[])
+def read_rows(kills,progress):
+ """A read with two collections: 1 holds w1, w2 and the shared w3; 2 holds w3 and w4."""
+ rows=[dict(weapon_id=w,weapon=w.upper(),achievement_id=a,kills=kills.get(w),completed=(kills.get(w) or 0)>=1000) for a,w in [(1,'w1'),(1,'w2'),(1,'w3'),(2,'w3'),(2,'w4')]]
+ return dict(rows=rows,summary=[dict(id=a,name=f'C{a}',progress=p) for a,p in progress.items()])
+class MilestoneTests(unittest.TestCase):
+ def test_weapon_crossing_the_goal_is_announced_once(self):
+  found=history.milestones({'w1':990,'w3':999},None,read_rows({'w1':1004,'w3':1000},{1:2,2:1}))
+  self.assertEqual([(k,r['weapon_id']) for k,r in found],[('weapon','w1'),('weapon','w3')])
+ def test_weapon_already_done_or_still_short_is_quiet(self):
+  self.assertEqual(history.milestones({'w1':1200,'w2':10},None,read_rows({'w1':1250,'w2':999},{1:1,2:0})),[])
+ def test_achievement_reaching_eight(self):
+  found=history.milestones({'w1':10},{1:7,2:8},read_rows({'w1':10},{1:8,2:8}))
+  self.assertEqual([(k,r['name']) for k,r in found],[('achievement','C1')])
+ def test_achievement_without_previous_progress_uses_old_kills(self):
+  self.assertEqual(history.milestones({'w1':1000},None,read_rows({'w1':1000},{1:8,2:0})),[('achievement',dict(id=1,name='C1',progress=8))])
+ def test_first_read_ever_announces_nothing(self):
+  self.assertEqual(history.milestones(None,None,read_rows({'w1':1500},{1:8,2:8})),[])
 class AdbRuntimeTests(unittest.TestCase):
+ def setUp(self):
+  self.tmp=tempfile.TemporaryDirectory();self.instances=Path(self.tmp.name)/'instances'
+  patcher=patch.object(adb_runtime,'INSTANCES',self.instances);patcher.start();self.addCleanup(patcher.stop);self.addCleanup(self.tmp.cleanup)
+ def test_window_closing_keeps_the_server_another_window_uses(self):
+  adb_runtime.register();(self.instances/str(os.getppid())).touch()
+  with patch.object(adb_runtime,'shutdown') as stop:adb_runtime.release('adb')
+  stop.assert_not_called();self.assertEqual(sorted(p.name for p in self.instances.iterdir()),[str(os.getppid())])
+ def test_last_window_stops_the_server_and_clears_dead_entries(self):
+  adb_runtime.register();(self.instances/'4000000000').touch()
+  with patch.object(adb_runtime,'shutdown') as stop:adb_runtime.release('adb')
+  stop.assert_called_once_with('adb');self.assertEqual(list(self.instances.iterdir()),[])
  def test_source_run_uses_bundled_adb_on_private_port(self):
   with patch.dict(os.environ),patch.object(adb_runtime,'BASE',Path('src_dir')):
    self.assertEqual(adb_runtime.prepare(),Path('src_dir')/'adb'/'adb.exe');self.assertEqual(os.environ['ANDROID_ADB_SERVER_PORT'],'5041')
+  self.assertEqual([p.name for p in self.instances.iterdir()],[str(os.getpid())])
  def test_frozen_run_copies_adb_out_of_temp_folder(self):
   with tempfile.TemporaryDirectory() as tmp:
    base=Path(tmp)/'mei';local=Path(tmp)/'local';(base/'adb').mkdir(parents=True)

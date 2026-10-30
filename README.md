@@ -8,6 +8,9 @@ Foundry Tracker shows your progress in the **Foundry challenges** of Destiny Ris
 - **Every weapon of a collection:** kills, kills left to 1,000, a progress bar and its artwork. Click a weapon to open its details.
 - **Shortest path:** the fewest kills you need to complete each achievement, and which weapons get you there.
 - **Sessions:** start a session before playing, then refresh from the menu to see the kills you gained with each weapon.
+- **Compact view:** a small window that stays on top of the game with the kills gained this session and the three weapons closest to 1,000. It reopens where you left it.
+- **Milestone notices:** a notice in the corner of the screen when a weapon reaches 1,000 kills or an achievement reaches 8/8.
+- **Automatic refresh** every 30 seconds while you play (optional).
 - **Share card:** save a PNG of your progress, ready to post.
 - **English and Spanish:** more languages can be added with a single JSON file (see *Translations*).
 - **Export** your data to CSV or JSON.
@@ -32,7 +35,7 @@ Foundry Tracker shows your progress in the **Foundry challenges** of Destiny Ris
    2. Turn on **Root permission**.
    3. Restart MuMu.
 2. Open Destiny Rising Global in MuMu and load your character.
-3. Run the Foundry Tracker `.exe`. The first read can take 20–60 seconds.
+3. Run the Foundry Tracker `.exe`. The first read after starting the game can take 10–20 seconds; later refreshes take a few seconds.
 4. Pick an emblem to see its weapons. Use **Refresh from game** (F5) whenever you want new numbers.
 
 If more than one game session is open, keep only the one you want to read.
@@ -40,7 +43,7 @@ If more than one game session is open, keep only the one you want to read.
 ## Privacy
 
 - Everything stays on your PC. The app only talks to MuMu through ADB on your own machine. It does not use the internet, your login or any NetEase service.
-- ADB runs from `%LOCALAPPDATA%\FoundryTracker\adb` on its own port (5041), so it does not interfere with MuMu's ADB, and it is stopped when you close the app.
+- ADB runs from `%LOCALAPPDATA%\FoundryTracker\adb` on its own port (5041), so it does not interfere with MuMu's ADB, and it is stopped when you close the last Foundry Tracker window.
 - It only reads: it does not change memory, inject code, unlock anything or touch your account.
 - Your read history (kills per weapon ID) is saved in `%APPDATA%\FoundryTracker\history.json`. Delete that folder to reset it.
 

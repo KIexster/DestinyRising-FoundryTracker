@@ -14,16 +14,20 @@ from theme import BG,PANEL,PANEL_HI,LINE,MUTED,DIM,FG,ACCENT,DONE,ARC,ERROR,STAT
 from widgets import Animator,FlatButton,Toggle,Segmented
 from cards import EmblemCard
 from weapons import WeaponList,Inspector
-from history import History,shortest_path
+from history import History,shortest_path,milestones
+from mini import MiniWindow,Toasts
 # tracker.py stops on an unknown game build; these messages become a "download the new version" notice.
 UPDATE_BUILD=re.compile(r'Build (\S+) no validada\. Esta versión admite (\S+)\.')
 UPDATE_ENGINE='Motor no compatible'
+AUTO_MS=30000      # automatic refresh; a refresh of a running game takes 3-5 s since 0.8.1
+TOAST_LIMIT=4      # more milestones than this in one read become a single "and N more" toast
 class App:
  def __init__(self,root,demo=None,adb=None):
   self.root=root;self.demo=demo;self.adb=adb;self.data=None;self.busy=False;self.closed=False;self.events=queue.Queue();self.auto_id=None;self.selected=None;self.mode='all';self.shimmer=-9.0;self.sweep=0.0;self.spin=0;self.phase=0.0
   self.settings=load_settings();self.lang=self.settings.get('lang') if self.settings.get('lang') in i18n.LANGS else i18n.DEFAULT_LANG;self.message=('key','starting',{},False)
   self.history=History(persist=not demo);self.current_gains={};self.paths={};self.notice=None
   self.anim=Animator(root);self.small=tkfont.Font(family=FONT,size=9,weight='bold');self.weapon_cache={};self.goal_row=None
+  self.mini=MiniWindow(self);self.toasts=Toasts(self);self.last_progress=None
   sw,sh=root.winfo_screenwidth(),root.winfo_screenheight();w,h=min(px(1230),sw-60),min(px(900),sh-100)
   root.geometry(f'{w}x{h}');root.minsize(min(px(1040),w),min(px(840),h));root.configure(bg=BG)
   # Gold wolves emblem instead of the Tk feather, for this window and every dialog it opens.
@@ -44,6 +48,7 @@ class App:
   self.export_button=FlatButton(bar,self,self.export);self.export_button.pack(side='right')
   self.share_button=FlatButton(bar,self,self.share);self.share_button.pack(side='right',padx=(0,px(10)))
   self.session_button=FlatButton(bar,self,self.toggle_session);self.session_button.pack(side='right',padx=(0,px(10)))
+  self.mini_button=FlatButton(bar,self,self.mini.toggle);self.mini_button.pack(side='right',padx=(0,px(10)))
   self.stage=tk.Frame(main,bg=BG);self.stage.pack(fill='both',expand=True)
   self.images={}
   for g in CATALOG['collections']:
@@ -63,6 +68,7 @@ class App:
   self.intro()
   root.bind('<Escape>',lambda e:self.escape());root.bind('<Control-r>',lambda e:self.refresh());root.bind('<F5>',lambda e:self.refresh())
   root.protocol('WM_DELETE_WINDOW',self.close);root.after(100,self.poll);root.after(50,self.pulse);root.after(700,self.refresh)
+  if self.settings.get('mini_open') and not demo:root.after(1600,self.mini.open)
  # Opening animation and the root notice
  def intro(self):
   """Opening: the emblem lights up along its centre line and splits open like two doors."""
@@ -207,6 +213,7 @@ class App:
   self.session_button.configure(text=self.T('session_end',kills=self.num(sum(self.current_gains.values()))) if active else self.T('session_start'))
   self.session_button.set_enabled(active or (self.data is not None and not self.busy))
   for button in (self.share_button,self.export_button):button.set_enabled(self.data is not None and not self.busy)
+  self.mini_button.configure(text=self.T('mini_close' if self.mini.win else 'mini_open'));self.mini.update()
  def toggle_session(self):
   if self.history.session:
    gains=self.history.end_session();self.message=('session',None,dict(kills=self.num(sum(gains.values())),weapons=len(gains)),False)
@@ -299,7 +306,7 @@ class App:
   elif kind=='session':text=self.T('session_summary',**kw)
   else:text=self.T(value,**kw)
   spinner='◜◝◞◟'[self.spin%4]+'  ' if self.busy else ''
-  self.status.configure(text=spinner+text,fg=color,font=(FONT,10,weight))
+  self.status.configure(text=spinner+text,fg=color,font=(FONT,10,weight));self.mini.update_status()
  # Reading
  def refresh(self):
   if self.busy or self.closed:return
@@ -322,8 +329,8 @@ class App:
     if kind=='status':self.message=('tracker',value,{},False);self.render_status();continue
     self.busy=False;self.refresh_button.set_enabled(True);self.refresh_button.configure(text=self.T('refresh'))
     if kind=='data':
-     warm=value.pop('warm',None)
-     self.data=value;self.history.add(value);self.current_gains=self.history.gains();self.paths=self.compute_paths();bad=[x['name'] for x in value['summary'] if not x['consistent']]
+     warm=value.pop('warm',None);old_kills=self.history.reads[-1]['kills'] if self.history.reads else None
+     self.data=value;self.history.add(value);self.announce(old_kills,value);self.current_gains=self.history.gains();self.paths=self.compute_paths();bad=[x['name'] for x in value['summary'] if not x['consistent']]
      self.remember_engine(value.get('engine'),warm)
      unverified=value.get('patch') if value.get('verified_build') is False else None
      self.message=('updated',None,dict(time=value['captured_at'][11:19],count=value['weapon_counter_count'],bad=bad,unverified=unverified),bool(bad))
@@ -348,6 +355,14 @@ class App:
     if (card.progress or 0)>=8:card.glow=glow;card.draw()
   if self.selected is not None:self.draw_hero()
   self.root.after(50,self.pulse)
+ def announce(self,old_kills,data):
+  """Toasts for weapons that reached 1,000 kills and achievements that reached 8/8 since the previous read."""
+  found=[] if self.demo else milestones(old_kills,self.last_progress,data);goal=self.num(GOAL)
+  for kind,item in found[:TOAST_LIMIT]:
+   if kind=='weapon':self.toasts.show(self.T('toast_weapon',goal=goal),self.T('toast_weapon_body',weapon=item['weapon'],goal=goal))
+   else:self.toasts.show(self.T('toast_achievement'),self.T('toast_achievement_body',name=item['name']))
+  if len(found)>TOAST_LIMIT:self.toasts.show(self.T('toast_more_title'),self.T('toast_more',count=len(found)-TOAST_LIMIT))
+  self.last_progress={x['id']:x['progress'] for x in data['summary']}
  def remember_engine(self,engine,warm=None):
   """Where the interpreter was found for this game build, so the next read skips the memory search, and the pages
   this read needed, so the next read of the same game process fetches them in a few batches (kept across restarts)."""
@@ -359,7 +374,7 @@ class App:
   save_settings(self.settings)
  def schedule(self):
   if self.auto_id:self.root.after_cancel(self.auto_id);self.auto_id=None
-  if self.auto.get() and not self.busy and not self.closed:self.auto_id=self.root.after(60000,self.refresh)
+  if self.auto.get() and not self.busy and not self.closed:self.auto_id=self.root.after(AUTO_MS,self.refresh)
  # Files
  def export(self):
   if not self.data:return
@@ -384,8 +399,8 @@ class App:
  def close(self):
   self.closed=True
   if self.auto_id:self.root.after_cancel(self.auto_id)
-  self.root.destroy()
-  if self.adb:adb_runtime.shutdown(self.adb)
+  self.mini.remember();self.root.destroy()
+  if self.adb:adb_runtime.release(self.adb)
 def enable_dpi_awareness():
  """Sharp text on 125 % / 150 % displays; theme.px() and theme.finish() keep the layout proportions."""
  try:
@@ -400,6 +415,6 @@ def main():
  adb=None if demo else adb_runtime.prepare()
  if '--diagnostic' in sys.argv:
   try:data=collect(adb,CATALOG);Path(sys.argv[sys.argv.index('--diagnostic')+1]).write_text(json.dumps(data,indent=2),'utf-8')
-  finally:adb_runtime.shutdown(adb)
+  finally:adb_runtime.release(adb)
   return
  enable_dpi_awareness();root=tk.Tk();theme.init_scale(root);App(root,demo,adb);root.mainloop()

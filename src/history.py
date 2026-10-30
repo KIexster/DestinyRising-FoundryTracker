@@ -28,6 +28,20 @@ class History:
   if self.reads:self.session=dict(self.reads[-1]);self.save()
  def end_session(self):
   gains=self.gains();self.session=None;self.save();return gains
+def milestones(old_kills,old_progress,data):
+ """Weapons that reached GOAL and achievements that reached 8/8 since the previous read, as (kind, row) pairs.
+ old_kills: weapon ID -> kills in the previous read, or None when there is no previous read (nothing to announce).
+ old_progress: achievement ID -> progress in the previous read of this window; otherwise derived from old_kills."""
+ if old_kills is None:return []
+ out=[];seen=set()
+ for r in data['rows']:
+  # The same weapon ID can sit in two collections: announce it once.
+  if r['kills'] is not None and r['weapon_id'] not in seen and r['kills']>=GOAL>(old_kills.get(r['weapon_id']) or 0):seen.add(r['weapon_id']);out.append(('weapon',r))
+ for s in data['summary']:
+  if old_progress and s['id'] in old_progress:before=old_progress[s['id']]
+  else:before=min(8,sum((old_kills.get(r['weapon_id']) or 0)>=GOAL for r in data['rows'] if r['achievement_id']==s['id']))
+  if s['progress']>=8>before:out.append(('achievement',s))
+ return out
 def shortest_path(rows,progress):
  """Fewest kills to reach 8 completed weapon IDs: the pending weapons closest to 1,000.
  A weapon without a record counts as a full 1,000 to go."""
