@@ -91,3 +91,11 @@ def work_area(root):
   if ctypes.windll.user32.SystemParametersInfoW(0x30,0,ctypes.byref(rect),0):return rect.left,rect.top,rect.right,rect.bottom
  except (ImportError,AttributeError,OSError):pass
  return 0,0,root.winfo_screenwidth(),root.winfo_screenheight()-px(48)
+def window_frame():
+ """Side border and top border with the title bar of a normal window, in pixels: Tk places the outer frame, not the content."""
+ try:
+  import ctypes
+  m=ctypes.windll.user32.GetSystemMetrics;side=m(32)+m(92)
+  if side>0:return side,m(4)+m(33)+m(92)
+ except (ImportError,AttributeError,OSError):pass
+ return px(8),px(31)

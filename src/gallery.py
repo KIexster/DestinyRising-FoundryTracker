@@ -15,7 +15,7 @@ from widgets import Animator,FlatButton,Toggle,Segmented
 from cards import EmblemCard
 from weapons import WeaponList,Inspector
 from history import History,shortest_path,milestones
-from mini import MiniWindow,Toasts
+from mini import MiniWindow,Toasts,work_area,window_frame
 # tracker.py stops on an unknown game build; these messages become a "download the new version" notice.
 UPDATE_BUILD=re.compile(r'Build (\S+) no validada\. Esta versión admite (\S+)\.')
 UPDATE_ENGINE='Motor no compatible'
@@ -28,8 +28,10 @@ class App:
   self.history=History(persist=not demo);self.current_gains={};self.paths={};self.notice=None
   self.anim=Animator(root);self.small=tkfont.Font(family=FONT,size=9,weight='bold');self.weapon_cache={};self.goal_row=None
   self.mini=MiniWindow(self);self.toasts=Toasts(self);self.last_progress=None
-  sw,sh=root.winfo_screenwidth(),root.winfo_screenheight();w,h=min(px(1230),sw-60),min(px(900),sh-100)
-  root.geometry(f'{w}x{h}');root.minsize(min(px(1040),w),min(px(840),h));root.configure(bg=BG)
+  # Centred in the screen area the taskbar leaves free, title bar included.
+  left,top,right,bottom=work_area(root);side,caption=window_frame();aw,ah=right-left,bottom-top
+  w,h=min(px(1230),aw-60),min(px(900),ah-caption-px(20))
+  root.geometry(f'{w}x{h}+{left+(aw-w)//2-side}+{top+max(0,(ah-h-caption)//2)}');root.minsize(min(px(1040),w),min(px(840),h));root.configure(bg=BG)
   # Gold wolves emblem instead of the Tk feather, for this window and every dialog it opens.
   try:root.iconbitmap(default=str(BASE/'emblems'/'app_icon.ico'))
   except tk.TclError:pass
