@@ -1,0 +1,14 @@
+# Only the app source, its docs and the build tools are published.
+/*
+!/.gitignore
+!/README.md
+!/LEEME.md
+!/LICENSE
+!/build.ps1
+!/prepare_icon.py
+!/prepare_weapon_images.py
+!/test_tracker.py
+!/src/
+__pycache__/
+# adb.exe, AdbWinApi.dll and AdbWinUsbApi.dll go here before building (see README).
+/src/adb/

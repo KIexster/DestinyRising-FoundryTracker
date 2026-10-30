@@ -1,0 +1,754 @@
+{
+  "version": 2,
+  "package": "com.netease.g108na",
+  "expected_patch": "202610280026",
+  "collections": [
+    {
+      "id": 16032,
+      "name": "Exotic Enthusiast",
+      "emblem_id": "47020",
+      "emblem": "emblems/47020.png"
+    },
+    {
+      "id": 16034,
+      "name": "Riviks & Wright",
+      "emblem_id": "47027",
+      "emblem": "emblems/47027.png"
+    },
+    {
+      "id": 16036,
+      "name": "Novak",
+      "emblem_id": "47025",
+      "emblem": "emblems/47025.png"
+    },
+    {
+      "id": 16037,
+      "name": "Strid",
+      "emblem_id": "47026",
+      "emblem": "emblems/47026.png"
+    },
+    {
+      "id": 16038,
+      "name": "Jiangshi Steelworks I",
+      "emblem_id": "47023",
+      "emblem": "emblems/47023.png"
+    },
+    {
+      "id": 16039,
+      "name": "Jiangshi Steelworks II",
+      "emblem_id": "47024",
+      "emblem": "emblems/47024.png"
+    },
+    {
+      "id": 16041,
+      "name": "Eclipse Monolith",
+      "emblem_id": "47021",
+      "emblem": "emblems/47021.png"
+    }
+  ],
+  "weapons": [
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Octant Riot Disperser",
+      "weapon_id": "aw09s01"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "The Chaperone",
+      "weapon_id": "aw09s02"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Manifesto",
+      "weapon_id": "aw07s02"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Concerto",
+      "weapon_id": "aw07s01"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Trinity Ghoul",
+      "weapon_id": "aw11s01"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Le Monarque",
+      "weapon_id": "aw11s02"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Symmetry",
+      "weapon_id": "aw03s04"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "The Jade Rabbit",
+      "weapon_id": "aw03s03"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Skyburner's Oath",
+      "weapon_id": "aw03s02"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Polaris Lance",
+      "weapon_id": "aw03s01"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Satiyaaliksni Smart Bomb",
+      "weapon_id": "aw13s02"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Royal Contravene",
+      "weapon_id": "aw05s01"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Arbalest",
+      "weapon_id": "aw05s03"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Crimson",
+      "weapon_id": "aw08s02"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "The Old Prefect",
+      "weapon_id": "aw08s03"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "The Last Word",
+      "weapon_id": "aw08s04"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "'Til Eternal Death",
+      "weapon_id": "aw08s05"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "The Jade Rabbit",
+      "weapon_id": "aw03s03t01"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Izanagi's Burden",
+      "weapon_id": "aw10s02"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Borealis",
+      "weapon_id": "aw10s01"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Cloudstrike",
+      "weapon_id": "aw10s04"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "The Wardcliff Coil",
+      "weapon_id": "aw15s01"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Truth",
+      "weapon_id": "aw15s02"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Two-Tailed Fox",
+      "weapon_id": "aw15s03"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Sweet Business",
+      "weapon_id": "aw01s01"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "SUROS Regime",
+      "weapon_id": "aw01s02"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Mahamayuri",
+      "weapon_id": "aw20s01"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "J\u00c3\u00b6tunn",
+      "weapon_id": "aw04s02"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Riskrunner",
+      "weapon_id": "aw06s01"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "The Huckleberry",
+      "weapon_id": "aw06s02"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Bad Juju",
+      "weapon_id": "aw02s02"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Furies III",
+      "weapon_id": "aw02s03"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Partridge Sky",
+      "weapon_id": "aw12s02"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Heir Apparent",
+      "weapon_id": "aw16s05"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Thunderlord",
+      "weapon_id": "aw16s06"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Gallows",
+      "weapon_id": "aw16s01"
+    },
+    {
+      "collection": "Exotic Enthusiast",
+      "achievement_id": 16032,
+      "weapon": "Dvergar Drill",
+      "weapon_id": "aw14s01"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "CLY3 North African Egg",
+      "weapon_id": "aw11a04"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "IST2 Niaatiks",
+      "weapon_id": "aw09a07"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "IST3 Zico'oclac",
+      "weapon_id": "aw10a06"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "DEL3 Lassi",
+      "weapon_id": "aw03a05"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "DEL2 Sweet Ears",
+      "weapon_id": "aw02a05"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "BVD4 Akutaak",
+      "weapon_id": "aw16a04"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "IST1 Parantha",
+      "weapon_id": "aw04a03"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "HON4 Pilaf",
+      "weapon_id": "aw14a04"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "HON2 Tutum'Alik",
+      "weapon_id": "aw15a05"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "DEL9 Ovation",
+      "weapon_id": "aw05a03"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "HON3 Eibellakks",
+      "weapon_id": "aw20a02"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "DEL5 Kulfi",
+      "weapon_id": "aw06a05"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "CLY2 Kakalik",
+      "weapon_id": "aw12a06"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "HON1 Khanom Khrok",
+      "weapon_id": "aw13a04"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "DEL6 Kokoretsi",
+      "weapon_id": "aw07a05"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "DEL7 Simit",
+      "weapon_id": "aw08a07"
+    },
+    {
+      "collection": "Riviks & Wright",
+      "achievement_id": 16034,
+      "weapon": "DEL1 Baklava",
+      "weapon_id": "aw01a10"
+    },
+    {
+      "collection": "Novak",
+      "achievement_id": 16036,
+      "weapon": "P267 \"Right Whale\"",
+      "weapon_id": "aw03b02"
+    },
+    {
+      "collection": "Novak",
+      "achievement_id": 16036,
+      "weapon": "F606 \"Sugar Glider\"",
+      "weapon_id": "aw11b02"
+    },
+    {
+      "collection": "Novak",
+      "achievement_id": 16036,
+      "weapon": "A112 \"Calf\"",
+      "weapon_id": "aw13b02"
+    },
+    {
+      "collection": "Novak",
+      "achievement_id": 16036,
+      "weapon": "P31 \"Armadillo\"",
+      "weapon_id": "aw02b03"
+    },
+    {
+      "collection": "Novak",
+      "achievement_id": 16036,
+      "weapon": "P6 \"Somniosus\"",
+      "weapon_id": "aw08b03"
+    },
+    {
+      "collection": "Novak",
+      "achievement_id": 16036,
+      "weapon": "P22 \"Tamarin\"",
+      "weapon_id": "aw01b04"
+    },
+    {
+      "collection": "Novak",
+      "achievement_id": 16036,
+      "weapon": "K205 \"Lemming\"",
+      "weapon_id": "aw09b03"
+    },
+    {
+      "collection": "Novak",
+      "achievement_id": 16036,
+      "weapon": "A67 \"Javan Rhino\"",
+      "weapon_id": "aw15b02"
+    },
+    {
+      "collection": "Novak",
+      "achievement_id": 16036,
+      "weapon": "P45 Turbot",
+      "weapon_id": "aw20b01"
+    },
+    {
+      "collection": "Novak",
+      "achievement_id": 16036,
+      "weapon": "A19 \"Argali\"",
+      "weapon_id": "aw10b04"
+    },
+    {
+      "collection": "Novak",
+      "achievement_id": 16036,
+      "weapon": "K18 \"Coelops\"",
+      "weapon_id": "aw06b02"
+    },
+    {
+      "collection": "Strid",
+      "achievement_id": 16037,
+      "weapon": "Fall From Grace",
+      "weapon_id": "aw03b01"
+    },
+    {
+      "collection": "Strid",
+      "achievement_id": 16037,
+      "weapon": "Desert Law",
+      "weapon_id": "aw11b01"
+    },
+    {
+      "collection": "Strid",
+      "achievement_id": 16037,
+      "weapon": "Brotherhood's Banner",
+      "weapon_id": "aw14b01"
+    },
+    {
+      "collection": "Strid",
+      "achievement_id": 16037,
+      "weapon": "Dusty Grave",
+      "weapon_id": "aw12b02"
+    },
+    {
+      "collection": "Strid",
+      "achievement_id": 16037,
+      "weapon": "Survivor's Instinct",
+      "weapon_id": "aw08b02"
+    },
+    {
+      "collection": "Strid",
+      "achievement_id": 16037,
+      "weapon": "Toxic Equation",
+      "weapon_id": "aw01b03"
+    },
+    {
+      "collection": "Strid",
+      "achievement_id": 16037,
+      "weapon": "Labyrinth's Compass",
+      "weapon_id": "aw09b02"
+    },
+    {
+      "collection": "Strid",
+      "achievement_id": 16037,
+      "weapon": "Permanent Liability ",
+      "weapon_id": "aw07b02"
+    },
+    {
+      "collection": "Strid",
+      "achievement_id": 16037,
+      "weapon": "Call of Greed",
+      "weapon_id": "aw15b01"
+    },
+    {
+      "collection": "Strid",
+      "achievement_id": 16037,
+      "weapon": "The Ultimate Prey",
+      "weapon_id": "aw10b03"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Dancing Bees",
+      "weapon_id": "aw06c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Nightfall Banner",
+      "weapon_id": "aw12c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Rev-7 Fusillade",
+      "weapon_id": "aw04c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Lotus",
+      "weapon_id": "aw14c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Type 301-1 SRI",
+      "weapon_id": "aw01c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Sandan-54 Fieldhand",
+      "weapon_id": "aw09c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Cold Arrow Movement",
+      "weapon_id": "aw11c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "6G76 \"Self-Rescue\" LVL",
+      "weapon_id": "aw13c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Azure Drab Auto-Fab",
+      "weapon_id": "aw07c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Reverse Equilibrium ",
+      "weapon_id": "aw02c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Chilling Thrill",
+      "weapon_id": "aw16c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Amatoxin",
+      "weapon_id": "aw08c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Type 5 Stratoshot SRM\u00c2\u00a9",
+      "weapon_id": "aw10c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "J90 \"Hornbill\"",
+      "weapon_id": "aw15c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Tye Nurler-AO4",
+      "weapon_id": "aw05c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Always Going Home",
+      "weapon_id": "aw03c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks I",
+      "achievement_id": 16038,
+      "weapon": "Chirping Cicada",
+      "weapon_id": "aw20c01"
+    },
+    {
+      "collection": "Jiangshi Steelworks II",
+      "achievement_id": 16039,
+      "weapon": "Latitude",
+      "weapon_id": "aw05b01"
+    },
+    {
+      "collection": "Jiangshi Steelworks II",
+      "achievement_id": 16039,
+      "weapon": "Prompt Satellite Dispenser",
+      "weapon_id": "aw13b01"
+    },
+    {
+      "collection": "Jiangshi Steelworks II",
+      "achievement_id": 16039,
+      "weapon": "Laplace's Mystery",
+      "weapon_id": "aw14b02"
+    },
+    {
+      "collection": "Jiangshi Steelworks II",
+      "achievement_id": 16039,
+      "weapon": "Type 7 \"Moonshot\" EMR-M",
+      "weapon_id": "aw02b02"
+    },
+    {
+      "collection": "Jiangshi Steelworks II",
+      "achievement_id": 16039,
+      "weapon": "Regolith Piton",
+      "weapon_id": "aw12b01"
+    },
+    {
+      "collection": "Jiangshi Steelworks II",
+      "achievement_id": 16039,
+      "weapon": "AOCS R1 Revolver",
+      "weapon_id": "aw08b01"
+    },
+    {
+      "collection": "Jiangshi Steelworks II",
+      "achievement_id": 16039,
+      "weapon": "Cognitum Carbine",
+      "weapon_id": "aw01b01"
+    },
+    {
+      "collection": "Jiangshi Steelworks II",
+      "achievement_id": 16039,
+      "weapon": "Gunpowder Duster",
+      "weapon_id": "aw09b01"
+    },
+    {
+      "collection": "Jiangshi Steelworks II",
+      "achievement_id": 16039,
+      "weapon": "Full Field Thresher",
+      "weapon_id": "aw16b01"
+    },
+    {
+      "collection": "Jiangshi Steelworks II",
+      "achievement_id": 16039,
+      "weapon": "The Accelerator",
+      "weapon_id": "aw10b01"
+    },
+    {
+      "collection": "Jiangshi Steelworks II",
+      "achievement_id": 16039,
+      "weapon": "Autoshear",
+      "weapon_id": "aw06b01"
+    },
+    {
+      "collection": "Jiangshi Steelworks II",
+      "achievement_id": 16039,
+      "weapon": "The Monolith",
+      "weapon_id": "aw04b01"
+    },
+    {
+      "collection": "Eclipse Monolith",
+      "achievement_id": 16041,
+      "weapon": "Eternal Retribution",
+      "weapon_id": "aw09a06"
+    },
+    {
+      "collection": "Eclipse Monolith",
+      "achievement_id": 16041,
+      "weapon": "40000 Sidereal Year",
+      "weapon_id": "aw10a05"
+    },
+    {
+      "collection": "Eclipse Monolith",
+      "achievement_id": 16041,
+      "weapon": "Total Lockdown",
+      "weapon_id": "aw03a04"
+    },
+    {
+      "collection": "Eclipse Monolith",
+      "achievement_id": 16041,
+      "weapon": "Ultimatum",
+      "weapon_id": "aw02a04"
+    },
+    {
+      "collection": "Eclipse Monolith",
+      "achievement_id": 16041,
+      "weapon": "Four-horned Ram",
+      "weapon_id": "aw15a04"
+    },
+    {
+      "collection": "Eclipse Monolith",
+      "achievement_id": 16041,
+      "weapon": "End of the Line",
+      "weapon_id": "aw05a01"
+    },
+    {
+      "collection": "Eclipse Monolith",
+      "achievement_id": 16041,
+      "weapon": "Century Lookout",
+      "weapon_id": "aw07b01"
+    },
+    {
+      "collection": "Eclipse Monolith",
+      "achievement_id": 16041,
+      "weapon": "Makeshift Ending",
+      "weapon_id": "aw12a04"
+    },
+    {
+      "collection": "Eclipse Monolith",
+      "achievement_id": 16041,
+      "weapon": "Spikefling Baton",
+      "weapon_id": "aw16b02"
+    },
+    {
+      "collection": "Eclipse Monolith",
+      "achievement_id": 16041,
+      "weapon": "Overseer",
+      "weapon_id": "aw10b02"
+    },
+    {
+      "collection": "Eclipse Monolith",
+      "achievement_id": 16041,
+      "weapon": "Parole",
+      "weapon_id": "aw08a05"
+    },
+    {
+      "collection": "Eclipse Monolith",
+      "achievement_id": 16041,
+      "weapon": "Mutineer's Torch",
+      "weapon_id": "aw04b02"
+    },
+    {
+      "collection": "Eclipse Monolith",
+      "achievement_id": 16041,
+      "weapon": "Wrongful Ingress",
+      "weapon_id": "aw01a08"
+    }
+  ],
+  "engine_header_sha256": "5b2bb229f9918b36e3ed8b2da24eae52ce2c202b02c81c3e16bb15ef7adbc58b"
+}
