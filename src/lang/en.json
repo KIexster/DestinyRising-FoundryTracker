@@ -87,6 +87,8 @@
   "Build nueva: buscando el intérprete del juego en memoria (solo la primera vez)…": "New game build: looking for the game interpreter in memory (first time only)…",
   "Build sin verificar: comprobando la estructura antes de mostrar nada…": "Unverified build: checking the structure before showing anything…",
   "No se encontró el intérprete del juego en memoria.": "The game interpreter was not found in memory.",
+  "MuMu no respondió a ADB a tiempo. Espera unos segundos y vuelve a actualizar; si se repite, reinicia MuMu.": "MuMu didn't answer ADB in time. Wait a few seconds and refresh; if it keeps happening, restart MuMu.",
+  "ADB tardó demasiado en responder. Vuelve a actualizar; si se repite, reinicia MuMu.": "ADB took too long to answer. Refresh again; if it keeps happening, restart MuMu.",
   "Cadena fuera de límites; lectura detenida.": "String out of bounds; read stopped.",
   "Formato inesperado de contadores.": "Unexpected counter format.",
   "Contador fuera de límites.": "Counter out of bounds.",

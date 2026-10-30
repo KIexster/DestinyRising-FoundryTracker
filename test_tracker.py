@@ -1,4 +1,4 @@
-import unittest,json,sys,os,tempfile,struct,re
+import unittest,json,sys,os,tempfile,struct,re,subprocess,time
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).parent/'src'))
@@ -21,6 +21,34 @@ class DetectionTests(unittest.TestCase):
   def fake(adb,args,**kw):return 'List of devices attached\na device\nb device' if args==['devices'] else 'B: P:42'
   with patch.object(tracker,'command',side_effect=fake):
    with self.assertRaisesRegex(tracker.TrackerError,'varias sesiones'):tracker.discover('adb','com.netease.g108na')
+ def test_stuck_device_does_not_block_discovery(self):
+  timeouts=[]
+  def fake(adb,args,**kw):
+   if args==['devices']:return 'List of devices attached\nemulator-5554\tdevice\n127.0.0.1:16384\tdevice'
+   timeouts.append(kw.get('timeout'))
+   if args[1]=='emulator-5554':raise subprocess.TimeoutExpired(args,kw.get('timeout'))
+   return 'B:e76ef978 P:2912'
+  with patch.object(tracker,'command',side_effect=fake):
+   self.assertEqual(tracker.discover('adb','com.netease.g108na'),('127.0.0.1:16384','2912'))
+  self.assertEqual(timeouts,[tracker.PROBE_TIMEOUT]*2)
+ def test_hanging_device_costs_only_the_grace_period(self):
+  def fake(adb,args,**kw):
+   if args==['devices']:return 'List of devices attached\nemulator-5554\tdevice\n127.0.0.1:16384\tdevice'
+   if args[1]=='emulator-5554':time.sleep(1.5)
+   return 'B:e76ef978 P:2912'
+  with patch.object(tracker,'command',side_effect=fake),patch.object(tracker,'PROBE_GRACE',0.2):
+   t=time.monotonic();self.assertEqual(tracker.discover('adb','com.netease.g108na'),('127.0.0.1:16384','2912'));self.assertLess(time.monotonic()-t,1)
+ def test_no_device_answering_is_actionable(self):
+  def fake(adb,args,**kw):
+   if args==['devices']:return 'List of devices attached\nemulator-5554\tdevice'
+   raise subprocess.TimeoutExpired(args,5)
+  with patch.object(tracker,'command',side_effect=fake):
+   with self.assertRaisesRegex(tracker.TrackerError,'no respondió a ADB'):tracker.discover('adb','com.netease.g108na')
+ def test_timeout_during_read_is_a_readable_error(self):
+  class Stuck:
+   def __init__(self,*args):raise subprocess.TimeoutExpired(['adb','shell'],15)
+  with patch.object(tracker,'discover',return_value=('s','42')),patch.object(tracker,'Session',Stuck):
+   with self.assertRaisesRegex(tracker.TrackerError,'ADB tardó demasiado'):tracker.collect('adb',CATALOG)
  def test_unknown_engine_is_read_as_unverified(self):
   maps='1000-3000 r-xp 00000000 00:00 0 /x/libGame.so\n3000-5000 rw-p 00002000 00:00 0 /x/libGame.so\n5000-9000 rw-p 00000000 00:00 0 [anon:.bss]\n9000-a000 rw-p 00000000 00:00 0'
   def fake(adb,args,**kw):return 'uid=0(root)' if args[-1]=='id' else maps

@@ -1,5 +1,5 @@
 from pathlib import Path
-import json,struct,subprocess,hashlib,datetime,time,atexit
+import json,struct,subprocess,hashlib,datetime,time,atexit,concurrent.futures
 from memory_reader import FastReader
 FLAGS=getattr(subprocess,'CREATE_NO_WINDOW',0)
 # CPython 3.12 layout of the game's interpreter and the C++ chain from the player to its property table.
@@ -9,6 +9,8 @@ ENGINE=dict(runtime_offset=0x75f1d08,runtime_head=0x28,interp_runtime=40,interp_
 RUNTIME_HEADER=struct.pack('<5i',1,0,1,1,1)
 SCAN_PAGES=64
 MODULE_BATCH=64
+PROBE_TIMEOUT=5
+PROBE_GRACE=1.5
 class TrackerError(Exception):pass
 class StructureError(TrackerError):
  """Memory without the expected layout. On an unverified build it means the reader needs an update."""
@@ -22,18 +24,37 @@ def command(adb,args,timeout=15,check=True):
  p=subprocess.run([str(adb)]+args,capture_output=True,timeout=timeout,creationflags=FLAGS)
  if check and p.returncode:raise TrackerError('ADB no pudo completar la lectura. Comprueba MuMu y su acceso root.')
  return p.stdout.decode('utf-8','replace').strip()
+def probe(adb,serial,package):
+ """(boot_id, game pid) of one adb device, or None if it doesn't answer within PROBE_TIMEOUT."""
+ try:out=command(adb,['-s',serial,'shell',f'echo B:$(cat /proc/sys/kernel/random/boot_id) P:$(pidof {package})'],timeout=PROBE_TIMEOUT,check=False).split()
+ except subprocess.TimeoutExpired:return None
+ return next((x[2:] for x in out if x.startswith('B:')),''),next((x[2:] for x in out if x.startswith('P:')),'')
 def discover(adb,package):
  raw=command(adb,['devices']);serials=[x.split()[0] for x in raw.splitlines()[1:] if len(x.split())>=2 and x.split()[1]=='device']
  if not serials:
   command(adb,['connect','127.0.0.1:16384'],check=False)
   raw=command(adb,['devices']);serials=[x.split()[0] for x in raw.splitlines()[1:] if len(x.split())>=2 and x.split()[1]=='device']
+ # Probed in parallel: one transport (seen with emulator-5554) sometimes hangs, and it must not stall or fail the
+ # read while the other one answers. Once a device has answered, the rest get PROBE_GRACE seconds more: copies of
+ # the same emulator and a second real emulator answer just as fast, a stuck transport would cost the full timeout.
+ pool=concurrent.futures.ThreadPoolExecutor(max_workers=max(1,len(serials)))
+ futures={pool.submit(probe,adb,serial,package):serial for serial in serials};answers=dict.fromkeys(serials)
+ pending=set(futures);end=time.monotonic()+PROBE_TIMEOUT+1
+ try:
+  while pending:
+   done,pending=concurrent.futures.wait(pending,timeout=max(0,end-time.monotonic()),return_when=concurrent.futures.FIRST_COMPLETED)
+   if not done:break
+   for future in done:
+    answers[futures[future]]=future.result()
+    if answers[futures[future]] is not None:end=min(end,time.monotonic()+PROBE_GRACE)
+ finally:pool.shutdown(wait=False)
  found={}
  for serial in serials:
   # MuMu can be listed twice (emulator-5554 and 127.0.0.1:16384); boot_id tells apart real instances.
-  out=command(adb,['-s',serial,'shell',f'echo B:$(cat /proc/sys/kernel/random/boot_id) P:$(pidof {package})'],check=False).split()
-  boot=next((x[2:] for x in out if x.startswith('B:')),'');pid=next((x[2:] for x in out if x.startswith('P:')),'')
+  boot,pid=answers[serial] or ('','')
   if pid.isdigit():found.setdefault(boot or serial,(serial,pid))
  found=list(found.values())
+ if not found and None in answers.values():raise TrackerError('MuMu no respondió a ADB a tiempo. Espera unos segundos y vuelve a actualizar; si se repite, reinicia MuMu.')
  if not found:raise TrackerError('No se encontró Destiny Rising GLOBAL abierto. Enciende MuMu, habilita ADB y abre tu personaje en el juego.')
  if len(found)!=1:raise TrackerError('Hay varias sesiones del juego abiertas. Deja abierta solo la que quieres consultar.')
  return found[0]
@@ -147,8 +168,9 @@ def collect(adb,catalog,status=lambda message:None,hints=None,warm=None):
  """hints: {libGame header sha256: runtime offset as hex} remembered from earlier reads.
  warm: the 'warm' entry of the previous result. Its pages are fetched fresh up front in a few round trips,
  so a refresh of the same game process costs a few batches instead of hundreds of single-page reads."""
- start=time.monotonic();status('Buscando el juego en MuMu…');serial,pid=discover(adb,catalog['package']);session=None;patch=None;verified=True
+ start=time.monotonic();status('Buscando el juego en MuMu…');session=None;patch=None;verified=True
  try:
+  serial,pid=discover(adb,catalog['package'])
   session=Session(adb,serial,pid,catalog);verified=session.verified_engine;status('Localizando el personaje y comprobando la build…')
   key=f'{serial}:{pid}:{session.header_sha}';same=isinstance(warm,dict) and warm.get('key')==key
   if same:session.gather(warm.get('pages') or [])
@@ -180,7 +202,8 @@ def collect(adb,catalog,status=lambda message:None,hints=None,warm=None):
  except StructureError as exc:
   if not verified:raise outdated(patch,catalog) from exc
   raise
- except (TrackerError,subprocess.TimeoutExpired):raise
+ except TrackerError:raise
+ except subprocess.TimeoutExpired as exc:raise TrackerError('ADB tardó demasiado en responder. Vuelve a actualizar; si se repite, reinicia MuMu.') from exc
  except Exception as exc:
   if not verified:raise outdated(patch,catalog) from exc
   raise TrackerError('No se pudo validar la estructura del juego. Espera a terminar la carga y actualiza. Detalle: '+str(exc)) from exc
