@@ -52,6 +52,7 @@
   "updated": "Actualizado a las {time} · {count} contadores leídos · {check}",
   "verified": "Progreso verificado",
   "review": "Revisar discrepancias: {names}",
+  "unverified": "build {build} aún sin verificar: los valores pasaron las comprobaciones de coherencia",
   "session_started": "Sesión iniciada. Juega, vuelve al menú y actualiza para ver lo que ganaste.",
   "session_summary": "Sesión terminada: +{kills} bajas en {weapons} armas.",
   "needs_update": "Destiny Rising se actualizó (build {build}). Esta versión de Foundry Tracker admite la build {supported}. Descarga la última versión de Foundry Tracker para seguir leyendo tu progreso.",

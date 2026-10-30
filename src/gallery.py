@@ -1,7 +1,7 @@
 """Foundry Tracker window: home emblems, collection view, intro, notices and the read loop.
 
 Look and feel: theme.py · texts: lang/*.json · widgets: widgets.py, cards.py, weapons.py ·
-history and shortest path: history.py · share card: sharecard.py. The reader (tracker.py) is untouched.
+history and shortest path: history.py · share card: sharecard.py · reader: tracker.py.
 """
 import sys,re,json,csv,time,math,threading,queue,datetime
 from pathlib import Path
@@ -292,6 +292,7 @@ class App:
    else:text=i18n.tracker_text(value,self.lang)
   elif kind=='updated':
    bad=kw['bad'];check=self.T('review',names=', '.join(bad)) if bad else self.T('verified');text=self.T('updated',time=kw['time'],count=self.num(kw['count']),check=check)
+   if kw.get('unverified'):text+='  ·  '+self.T('unverified',build=kw['unverified'])
    if self.demo:text+='  ·  '+self.T('demo',file=self.demo[0])
   elif kind=='exported':text=self.T('exported',path=value)
   elif kind=='shared':text=self.T('share_saved',path=value)
@@ -310,7 +311,7 @@ class App:
   def work():
    try:
     if self.demo:time.sleep(1.2);self.events.put(('data',json.loads(Path(self.demo[1]).read_text('utf-8'))));return
-    self.events.put(('data',collect(self.adb,CATALOG,lambda msg:self.events.put(('status',msg)))))
+    self.events.put(('data',collect(self.adb,CATALOG,lambda msg:self.events.put(('status',msg)),self.settings.get('runtime_offsets'))))
    except Exception as exc:self.events.put(('error',str(exc)))
   threading.Thread(target=work,daemon=True).start()
  def poll(self):
@@ -322,7 +323,9 @@ class App:
     self.busy=False;self.refresh_button.set_enabled(True);self.refresh_button.configure(text=self.T('refresh'))
     if kind=='data':
      self.data=value;self.history.add(value);self.current_gains=self.history.gains();self.paths=self.compute_paths();bad=[x['name'] for x in value['summary'] if not x['consistent']]
-     self.message=('updated',None,dict(time=value['captured_at'][11:19],count=value['weapon_counter_count'],bad=bad),bool(bad))
+     self.remember_engine(value.get('engine'))
+     unverified=value.get('patch') if value.get('verified_build') is False else None
+     self.message=('updated',None,dict(time=value['captured_at'][11:19],count=value['weapon_counter_count'],bad=bad,unverified=unverified),bool(bad))
      for g in CATALOG['collections']:s=self.summary_for(g['id']);self.cards[g['id']].set_progress(s['progress'] if s else 0)
      self.update_closest();self.render_detail(animate=True);self.inspector.draw()
     else:self.message=('tracker',value,{},True)
@@ -344,6 +347,14 @@ class App:
     if (card.progress or 0)>=8:card.glow=glow;card.draw()
   if self.selected is not None:self.draw_hero()
   self.root.after(50,self.pulse)
+ def remember_engine(self,engine):
+  """Where the interpreter was found for this game build, so the next read skips the memory search."""
+  if self.demo or not engine:return
+  offsets=self.settings.setdefault('runtime_offsets',{})
+  if offsets.get(engine['header_sha256'])==engine['runtime_offset']:return
+  offsets.pop(engine['header_sha256'],None);offsets[engine['header_sha256']]=engine['runtime_offset']
+  while len(offsets)>8:offsets.pop(next(iter(offsets)))
+  save_settings(self.settings)
  def schedule(self):
   if self.auto_id:self.root.after_cancel(self.auto_id);self.auto_id=None
   if self.auto.get() and not self.busy and not self.closed:self.auto_id=self.root.after(60000,self.refresh)

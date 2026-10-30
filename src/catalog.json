@@ -750,5 +750,12 @@
       "weapon_id": "aw01a08"
     }
   ],
-  "engine_header_sha256": "5b2bb229f9918b36e3ed8b2da24eae52ce2c202b02c81c3e16bb15ef7adbc58b"
+  "engine_header_sha256": "5b2bb229f9918b36e3ed8b2da24eae52ce2c202b02c81c3e16bb15ef7adbc58b",
+  "engine": {
+    "runtime_offset": "0x75f1d08",
+    "runtime_head": 40,
+    "interp_runtime": 40,
+    "interp_modules": 888,
+    "player_storage": [32, 16, 32, 0, 512, 32]
+  }
 }

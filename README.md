@@ -17,7 +17,13 @@ Foundry Tracker shows your progress in the **Foundry challenges** of Destiny Ris
 - Windows 10 or 11, 64-bit.
 - **MuMu Player 12** with **root permission enabled** (see below).
 - Destiny Rising **Global**, with your character loaded in the game.
-- The game build supported by your version of Foundry Tracker. When the game updates, the app tells you to download the new version.
+- A game build Foundry Tracker can read. After a game update the app still tries to read the new build (see *When the game updates*); if it can't, it tells you to download the new version.
+
+## When the game updates
+
+- Foundry Tracker locates the game's interpreter by searching memory instead of relying on one fixed address, so small game updates usually keep working. The first read on a new build takes a few seconds longer while it searches; the result is remembered in `settings.json`.
+- On a build that hasn't been verified yet, every achievement must match the kills of its weapons before anything is shown, and the status line says the build is not verified yet. If anything doesn't match, the read stops and the app asks you to download the new version.
+- A release may also include an `engine.json`. Putting it in `%APPDATA%\FoundryTracker` teaches your current version a new game build without downloading a new executable.
 
 ## Getting started
 
