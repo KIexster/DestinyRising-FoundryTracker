@@ -34,6 +34,7 @@ If more than one game session is open, keep only the one you want to read.
 ## Privacy
 
 - Everything stays on your PC. The app only talks to MuMu through ADB on your own machine. It does not use the internet, your login or any NetEase service.
+- ADB runs from `%LOCALAPPDATA%\FoundryTracker\adb` on its own port (5041), so it does not interfere with MuMu's ADB, and it is stopped when you close the app.
 - It only reads: it does not change memory, inject code, unlock anything or touch your account.
 - Your read history (kills per weapon ID) is saved in `%APPDATA%\FoundryTracker\history.json`. Delete that folder to reset it.
 
@@ -43,7 +44,7 @@ Interface texts live in `src/lang/<code>.json`. To add a language, copy `en.json
 
 ## Building from source
 
-Python 3.12 with Tk, Pillow and PyInstaller. Put `adb.exe`, `AdbWinApi.dll` and `AdbWinUsbApi.dll` in `src/adb`, then run `build.ps1`. Run with `--demo export.json` to open the interface on a saved JSON export without the game, or with `--no-intro` to skip the opening animation.
+Python 3.12 with Tk. Put `adb.exe`, `AdbWinApi.dll` and `AdbWinUsbApi.dll` in `src/adb`, then run `build.ps1` (use `-Python <path>` to choose the interpreter). It creates `.venv-build` with the pinned tools from `requirements-build.txt`, runs the tests and writes the executable, its SHA-256 file and the release zip to `dist`, named after the version in `src/resources.py`. Run the app with `--demo export.json` to open the interface on a saved JSON export without the game, or with `--no-intro` to skip the opening animation.
 
 ---
 

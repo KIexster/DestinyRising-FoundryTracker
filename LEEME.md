@@ -43,7 +43,7 @@ Los resultados anteriores describen la cuenta y el momento de la prueba, no valo
 
 src/app.py: entrada. src/gallery.py: galería de emblemas y detalle por colección. src/tracker.py: detección, validación y extracción. src/memory_reader.py: lectura acotada de estructuras. src/catalog.json: catálogo y huella de compatibilidad. test_tracker.py: pruebas de errores.
 
-Para recompilar, usa Python 3.12 con Tk y PyInstaller y ejecuta build.ps1. Los tres binarios de ADB deben estar en src/adb. No hace falta ejecutar prepare.py: es una herramienta interna para generar la huella y el catálogo desde los materiales de investigación.
+Para recompilar, usa Python 3.12 con Tk y ejecuta build.ps1 (con `-Python <ruta>` eliges el intérprete). Crea `.venv-build` con las herramientas fijadas en requirements-build.txt, pasa los tests y deja en dist el .exe, su SHA-256 y el zip de la release, con el nombre de la versión de src/resources.py. Los tres binarios de ADB deben estar en src/adb. No hace falta ejecutar prepare.py: es una herramienta interna para generar la huella y el catálogo desde los materiales de investigación.
 
 ## Interfaz 0.2
 
@@ -96,3 +96,4 @@ Solo cambió src/gallery.py: el lector (tracker.py y memory_reader.py) es el mis
 - **Código separado.** `theme.py` (colores y medidas), `widgets.py`, `cards.py`, `weapons.py`, `history.py`, `sharecard.py`, `i18n.py`, `resources.py` y `gallery.py` (ventana principal). El lector (`tracker.py`, `memory_reader.py`) no cambió.
 - 0.7.1: icono propio (emblema dorado de los lobos) en la ventana, la barra de tareas y el .exe, en lugar de la pluma de Tk. Se genera con prepare_icon.py en src/emblems/app_icon.ico.
 - 0.7.2: MuMu puede aparecer dos veces en adb (`emulator-5554` y `127.0.0.1:16384`). El lector agrupa los dispositivos por `boot_id`, así que esa duplicación ya no da el aviso de «varias sesiones»; dos emuladores distintos con el juego abierto lo siguen dando.
+- 0.7.3: ADB se copia a `%LOCALAPPDATA%\FoundryTracker\adb` y usa su propio puerto (5041) en lugar del 5037 que comparte con MuMu; al cerrar la ventana se detiene ese servidor (`adb_runtime.py`). Antes el servidor seguía en marcha desde la carpeta temporal `_MEI…` del .exe e impedía borrarla. Compilación reproducible: build.ps1 instala las versiones fijadas de requirements-build.txt, pasa los tests, compila sin UPX y genera el .exe, el SHA-256 y el zip con el nombre de la versión.

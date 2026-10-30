@@ -8,7 +8,7 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import ttk,filedialog,messagebox,font as tkfont
 from tracker import collect
-import theme,i18n,sharecard
+import theme,i18n,sharecard,adb_runtime
 from resources import BASE,CATALOG,VERSION,GOAL,load_settings,save_settings
 from theme import BG,PANEL,PANEL_HI,LINE,MUTED,DIM,FG,ACCENT,DONE,ARC,ERROR,STATUS,SPLASH_BG,FONT,px,size,finish,mix,ease_in_out,rounded
 from widgets import Animator,FlatButton,Toggle,Segmented
@@ -19,8 +19,8 @@ from history import History,shortest_path
 UPDATE_BUILD=re.compile(r'Build (\S+) no validada\. Esta versión admite (\S+)\.')
 UPDATE_ENGINE='Motor no compatible'
 class App:
- def __init__(self,root,demo=None):
-  self.root=root;self.demo=demo;self.data=None;self.busy=False;self.closed=False;self.events=queue.Queue();self.auto_id=None;self.selected=None;self.mode='all';self.shimmer=-9.0;self.sweep=0.0;self.spin=0;self.phase=0.0
+ def __init__(self,root,demo=None,adb=None):
+  self.root=root;self.demo=demo;self.adb=adb;self.data=None;self.busy=False;self.closed=False;self.events=queue.Queue();self.auto_id=None;self.selected=None;self.mode='all';self.shimmer=-9.0;self.sweep=0.0;self.spin=0;self.phase=0.0
   self.settings=load_settings();self.lang=self.settings.get('lang') if self.settings.get('lang') in i18n.LANGS else i18n.DEFAULT_LANG;self.message=('key','starting',{},False)
   self.history=History(persist=not demo);self.current_gains={};self.paths={};self.notice=None
   self.anim=Animator(root);self.small=tkfont.Font(family=FONT,size=9,weight='bold');self.weapon_cache={};self.goal_row=None
@@ -310,7 +310,7 @@ class App:
   def work():
    try:
     if self.demo:time.sleep(1.2);self.events.put(('data',json.loads(Path(self.demo[1]).read_text('utf-8'))));return
-    self.events.put(('data',collect(BASE/'adb/adb.exe',CATALOG,lambda msg:self.events.put(('status',msg)))))
+    self.events.put(('data',collect(self.adb,CATALOG,lambda msg:self.events.put(('status',msg)))))
    except Exception as exc:self.events.put(('error',str(exc)))
   threading.Thread(target=work,daemon=True).start()
  def poll(self):
@@ -372,6 +372,7 @@ class App:
   self.closed=True
   if self.auto_id:self.root.after_cancel(self.auto_id)
   self.root.destroy()
+  if self.adb:adb_runtime.shutdown(self.adb)
 def enable_dpi_awareness():
  """Sharp text on 125 % / 150 % displays; theme.px() and theme.finish() keep the layout proportions."""
  try:
@@ -380,9 +381,12 @@ def enable_dpi_awareness():
   except (AttributeError,OSError):ctypes.windll.user32.SetProcessDPIAware()
  except Exception:pass
 def main():
- if '--diagnostic' in sys.argv:
-  data=collect(BASE/'adb/adb.exe',CATALOG);Path(sys.argv[sys.argv.index('--diagnostic')+1]).write_text(json.dumps(data,indent=2),'utf-8');return
  demo=None
  if '--demo' in sys.argv:
   path=Path(sys.argv[sys.argv.index('--demo')+1]);demo=(path.name,str(path))
- enable_dpi_awareness();root=tk.Tk();theme.init_scale(root);App(root,demo);root.mainloop()
+ adb=None if demo else adb_runtime.prepare()
+ if '--diagnostic' in sys.argv:
+  try:data=collect(adb,CATALOG);Path(sys.argv[sys.argv.index('--diagnostic')+1]).write_text(json.dumps(data,indent=2),'utf-8')
+  finally:adb_runtime.shutdown(adb)
+  return
+ enable_dpi_awareness();root=tk.Tk();theme.init_scale(root);App(root,demo,adb);root.mainloop()

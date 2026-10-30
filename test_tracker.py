@@ -1,8 +1,8 @@
-import unittest,json,sys
+import unittest,json,sys,os,tempfile
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).parent/'src'))
-import tracker
+import tracker,adb_runtime
 class DetectionTests(unittest.TestCase):
  def test_no_game_is_actionable(self):
   with patch.object(tracker,'command',return_value='List of devices attached\n'):
@@ -27,4 +27,18 @@ class DetectionTests(unittest.TestCase):
   r=object.__new__(tracker.Session);values={0x120:0x200,0x210:0x300,0x310:0x400,0x318:0,0x428:1,0x420:0x500,0x510:0x600,0x500:0x500}
   r.q=lambda a:values[a];r.read=lambda a,n: b'\0' if n==1 else (123).to_bytes(8,'little');r.cppstr=lambda a:'aw01a01'
   with self.assertRaisesRegex(tracker.TrackerError,'Mapa inconsistente'):r.int_map(0x100)
+class AdbRuntimeTests(unittest.TestCase):
+ def test_source_run_uses_bundled_adb_on_private_port(self):
+  with patch.dict(os.environ),patch.object(adb_runtime,'BASE',Path('src_dir')):
+   self.assertEqual(adb_runtime.prepare(),Path('src_dir')/'adb'/'adb.exe');self.assertEqual(os.environ['ANDROID_ADB_SERVER_PORT'],'5041')
+ def test_frozen_run_copies_adb_out_of_temp_folder(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   base=Path(tmp)/'mei';local=Path(tmp)/'local';(base/'adb').mkdir(parents=True)
+   for name in adb_runtime.FILES:(base/'adb'/name).write_bytes(name.encode())
+   with patch.dict(os.environ),patch.object(adb_runtime,'BASE',base),patch.object(adb_runtime,'LOCAL',local),patch.object(sys,'_MEIPASS',str(base),create=True),patch.object(adb_runtime,'shutdown') as stop:
+    self.assertEqual(adb_runtime.prepare(),local/'adb.exe');stop.assert_not_called()
+    self.assertTrue(all((local/n).read_bytes()==n.encode() for n in adb_runtime.FILES))
+    adb_runtime.prepare();stop.assert_not_called()
+    (base/'adb'/'adb.exe').write_bytes(b'new build');adb_runtime.prepare()
+    stop.assert_called_once_with(local/'adb.exe');self.assertEqual((local/'adb.exe').read_bytes(),b'new build')
 if __name__=='__main__':unittest.main()

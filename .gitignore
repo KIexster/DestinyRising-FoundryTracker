@@ -8,6 +8,7 @@
 !/prepare_icon.py
 !/prepare_weapon_images.py
 !/test_tracker.py
+!/requirements-build.txt
 !/src/
 __pycache__/
 # adb.exe, AdbWinApi.dll and AdbWinUsbApi.dll go here before building (see README).
