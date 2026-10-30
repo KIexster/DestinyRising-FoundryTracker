@@ -21,6 +21,7 @@ UPDATE_BUILD=re.compile(r'Build (\S+) no validada\. Esta versión admite (\S+)\.
 UPDATE_ENGINE='Motor no compatible'
 AUTO_MS=30000      # automatic refresh; a refresh of a running game takes 3-5 s since 0.8.1
 TOAST_LIMIT=4      # more milestones than this in one read become a single "and N more" toast
+NOTICE_SETTING='hide_notice_v1'  # renamed in 1.0.0 so everyone sees the risk note once, even if they hid the old notice
 class App:
  def __init__(self,root,demo=None,adb=None):
   self.root=root;self.demo=demo;self.adb=adb;self.data=None;self.busy=False;self.closed=False;self.events=queue.Queue();self.auto_id=None;self.selected=None;self.mode='all';self.shimmer=-9.0;self.sweep=0.0;self.spin=0;self.phase=0.0
@@ -114,19 +115,20 @@ class App:
   self.doors=[];self.door_images=[];self.show_notice()
  def show_notice(self):
   """Root reminder shown on every start until "Don't show this again" is ticked."""
-  if self.settings.get('hide_root_notice') or self.notice or self.closed:return
+  if self.settings.get(NOTICE_SETTING) or self.notice or self.closed:return
   shade=self.notice=tk.Frame(self.root,bg=BG);shade.place(relx=0,rely=0,relwidth=1,relheight=1);tk.Misc.tkraise(shade)
   panel=tk.Frame(shade,bg=PANEL,highlightthickness=px(2),highlightbackground=ACCENT,highlightcolor=ACCENT,padx=px(34),pady=px(28));panel.place(relx=0.5,rely=0.5,anchor='center',y=px(30))
   tk.Label(panel,text=self.T('notice_title'),bg=PANEL,fg=ACCENT,font=(FONT,20,'bold')).pack(anchor='w')
   tk.Label(panel,text=self.T('notice_body'),bg=PANEL,fg=FG,font=(FONT,11),wraplength=px(540),justify='left').pack(anchor='w',pady=(px(12),px(12)))
   tk.Label(panel,text=self.T('notice_steps'),bg=PANEL,fg=MUTED,font=(FONT,11),justify='left').pack(anchor='w')
+  tk.Label(panel,text=self.T('notice_risk'),bg=PANEL,fg=STATUS,font=(FONT,10),wraplength=px(540),justify='left').pack(anchor='w',pady=(px(16),0))
   row=tk.Frame(panel,bg=PANEL);row.pack(fill='x',pady=(px(24),0))
   self.notice_hide=tk.BooleanVar(value=False);hide=Toggle(row,self,self.notice_hide,lambda:None,bg=PANEL);hide.label.configure(text=self.T('notice_hide'));hide.pack(side='left')
   FlatButton(row,self,self.close_notice,primary=True,text=self.T('notice_ok')).pack(side='right',padx=(px(40),0))
   self.anim.tween('notice',380,lambda t:panel.place_configure(y=px(30)*(1-t)))
  def close_notice(self):
   if not self.notice:return
-  if self.notice_hide.get():self.settings['hide_root_notice']=True;save_settings(self.settings)
+  if self.notice_hide.get():self.settings[NOTICE_SETTING]=True;save_settings(self.settings)
   self.notice.destroy();self.notice=None
  # Collection view
  def build_detail(self):

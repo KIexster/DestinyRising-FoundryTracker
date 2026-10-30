@@ -9,6 +9,7 @@ Foundry Tracker shows your progress in the **Foundry challenges** of Destiny Ris
 - **Shortest path:** the fewest kills you need to complete each achievement, and which weapons get you there.
 - **Sessions:** start a session before playing, then refresh from the menu to see the kills you gained with each weapon.
 - **Compact view:** a small window that stays on top of the game with the kills gained this session and the three weapons closest to 1,000. It reopens where you left it.
+- **Follow a weapon:** open a weapon's details and choose **Follow in compact view** to keep only that weapon on top of the game: its kills out of 1,000, a progress bar, what is left and what you gained. Once it reaches 1,000 it offers the next closest weapon of its collection; **Show all** goes back to the general view.
 - **Milestone notices:** a notice in the corner of the screen when a weapon reaches 1,000 kills or an achievement reaches 8/8.
 - **Automatic refresh** every 30 seconds while you play (optional).
 - **Share card:** save a PNG of your progress, ready to post.
@@ -46,6 +47,27 @@ If more than one game session is open, keep only the one you want to read.
 - ADB runs from `%LOCALAPPDATA%\FoundryTracker\adb` on its own port (5041), so it does not interfere with MuMu's ADB, and it is stopped when you close the last Foundry Tracker window.
 - It only reads: it does not change memory, inject code, unlock anything or touch your account.
 - Your read history (kills per weapon ID) is saved in `%APPDATA%\FoundryTracker\history.json`. Delete that folder to reset it.
+
+## Safety and ban risk
+
+**What runs on the emulator.** These are the only commands Foundry Tracker can send through ADB. Since 1.0.0, any other command is refused before it runs (`src/readonly.py`, covered by the tests), so no bug, edited catalog or `engine.json` can make the app do anything else:
+
+| Command | What it is for |
+| --- | --- |
+| `id` (as root) | Check that MuMu's root access is on. |
+| `pidof com.netease.g108na`, `cat /proc/sys/kernel/random/boot_id` | Find the game and tell emulator instances apart. |
+| `cat /proc/<pid>/maps` (as root) | List the game's memory regions. |
+| `dd if=/proc/<pid>/mem … status=none` (as root) | Read memory pages: `if=` is a read, there is never an `of=`. |
+| `adb devices`, `adb connect 127.0.0.1:16384`, `adb kill-server` | Manage the local ADB server on your PC. |
+
+**What it never does.** Write to the game's memory, inject code, attach a debugger, touch the game's files, send taps or keys, play for you, unlock anything or use the internet. The root shell exists only while a read is running and is closed right after it.
+
+**Can it get my account banned?** It can't be ruled out. Reading a game's memory with third-party software can go against its Terms of Service even when nothing is changed, and only the publisher decides what it sanctions. Foundry Tracker does not try to hide from the game's anti-cheat and never will: hiding is what cheats do. Its protection is being open about what it does, never changing the game and giving no advantage in play. If you want zero risk, don't use it.
+
+**Keep it safe.**
+- Download it only from this repository's Releases page, and check the SHA-256 listed in the release notes. The build is reproducible from the source (`build.ps1`).
+- MuMu's root access gives full control to every app in the emulator. If you don't use the tracker for a while, you can turn root off and turn it on again when you need it.
+- Some antivirus tools flag any PyInstaller executable. The build doesn't use UPX packing, which avoids most false positives; if yours still complains, check the SHA-256 or build it yourself.
 
 ## Translations
 

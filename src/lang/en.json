@@ -21,6 +21,14 @@
   "mini_updated": "Updated {time}",
   "mini_error": "Last read failed: see the main window",
   "mini_refresh": "Refresh",
+  "mini_following": "FOLLOWING",
+  "mini_show_all": "Show all",
+  "mini_follow_left": "{kills} to go",
+  "mini_follow_next": "Follow the next one →\n{weapon} · {kills} to go",
+  "mini_follow_all_done": "Every weapon in this collection is done",
+  "mini_follow_missing": "Not in the last read",
+  "follow": "Follow in compact view",
+  "follow_stop": "Stop following",
   "toast_weapon": "{goal} kills!",
   "toast_weapon_body": "{weapon} reached {goal} kills.",
   "toast_achievement": "Achievement complete",
@@ -92,7 +100,8 @@
   "notice_body": "Foundry Tracker reads your progress from Destiny Rising Global running in MuMu Player. It needs root access in MuMu to do it:",
   "notice_steps": "1.  Open MuMu Player and go to Settings center → Other.\n2.  Turn on Root permission.\n3.  Restart MuMu and load your character in the game.",
   "notice_ok": "Got it",
-  "notice_hide": "Don't show this again"
+  "notice_hide": "Don't show this again",
+  "notice_risk": "It only reads: it doesn't change the game, send data anywhere or play for you. Even so, reading the game's memory with an outside program may go against its Terms of Service, and nobody can guarantee there will be no penalties. Use it at your own risk."
  },
  "tracker": {
   "ADB no pudo completar la lectura. Comprueba MuMu y su acceso root.": "ADB could not complete the read. Check MuMu and its root access.",
@@ -130,6 +139,7 @@
   "Se rechazaron contadores fuera de rango.": "Out-of-range counters were rejected."
  },
  "tracker_patterns": [
-  {"pattern": "No se pudo validar la estructura del juego\\..*Detalle: (.*)$", "text": "Could not validate the game structure. Wait for loading to finish and refresh. Detail: {0}"}
+  {"pattern": "No se pudo validar la estructura del juego\\..*Detalle: (.*)$", "text": "Could not validate the game structure. Wait for loading to finish and refresh. Detail: {0}"},
+  {"pattern": "Comando bloqueado por seguridad \\(Foundry Tracker solo lee\\): (.*)$", "text": "Command blocked for safety (Foundry Tracker only reads): {0}"}
  ]
 }

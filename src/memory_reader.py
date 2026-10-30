@@ -1,4 +1,5 @@
 import struct,subprocess,concurrent.futures,atexit,base64,bisect
+import readonly
 GATHER_RUNS=48
 class Reader:
  def read(self,a,n):
@@ -9,7 +10,7 @@ class Reader:
    if pg not in self.cache:
     span=next((r for r in self.ranges if r[0]<=pg and pg+4096<=r[1] and r[2].startswith('r')),None)
     if not span:raise ValueError(f'Unmapped pointer {a:x}')
-    result=subprocess.run([self.adb,'-s',self.serial,'exec-out','su','0','dd',f'if=/proc/{self.pid}/mem','bs=4096',f'skip={pg//4096}','count=1','status=none'],capture_output=True,timeout=15)
+    result=subprocess.run([self.adb]+readonly.check(['-s',self.serial,'exec-out','su','0','dd',f'if=/proc/{self.pid}/mem','bs=4096',f'skip={pg//4096}','count=1','status=none']),capture_output=True,timeout=15)
     if result.returncode or len(result.stdout)!=4096:raise ValueError('Read failed or short')
     self.cache[pg]=result.stdout;self.calls+=1
    out+=self.cache[pg][off:off+take];a+=take;n-=take
@@ -52,9 +53,10 @@ class FastReader(Reader):
  def transfer(self,cmd,n):
   """One round trip on the root shell: cmd must write exactly n bytes, which come back base64-encoded."""
   if not getattr(self,'channel',None):
-   self.channel=subprocess.Popen([self.adb,'-s',self.serial,'shell','-T','su','0','sh'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
+   self.channel=subprocess.Popen([self.adb]+readonly.check(['-s',self.serial,'shell','-T','su','0','sh']),stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
    self.executor=concurrent.futures.ThreadPoolExecutor(max_workers=1);atexit.register(self.close)
-  self.channel.stdin.write(f"({cmd}) 2>/dev/null | base64; printf 'READ_END\\n'\n".encode('ascii'));self.channel.stdin.flush()
+  # The root shell only ever receives memory reads; the base64 wrapper around them is fixed text.
+  self.channel.stdin.write(f"({readonly.check_channel(cmd)}) 2>/dev/null | base64; printf 'READ_END\\n'\n".encode('ascii'));self.channel.stdin.flush()
   def receive():
    lines=[];total=0
    while True:

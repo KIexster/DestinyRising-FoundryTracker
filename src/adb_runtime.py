@@ -7,6 +7,7 @@ so closing one window does not stop the server another window is still using.
 import os,sys,shutil,subprocess,hashlib
 from pathlib import Path
 from resources import BASE
+import readonly
 PORT='5041'
 FILES=('adb.exe','AdbWinApi.dll','AdbWinUsbApi.dll')
 LOCAL=Path(os.environ.get('LOCALAPPDATA',str(Path.home())))/'FoundryTracker'/'adb'
@@ -50,5 +51,5 @@ def release(adb):
  if not others:shutdown(adb)
 def shutdown(adb):
  """Stop this app's own server (port 5041)."""
- try:subprocess.run([str(adb),'kill-server'],capture_output=True,timeout=5,creationflags=FLAGS)
+ try:subprocess.run([str(adb)]+readonly.check(['kill-server']),capture_output=True,timeout=5,creationflags=FLAGS)
  except (OSError,subprocess.TimeoutExpired):pass

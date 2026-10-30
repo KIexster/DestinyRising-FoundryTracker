@@ -1,4 +1,4 @@
-# Foundry Tracker 0.2 — Armería — Destiny Rising Global
+# Foundry Tracker — Armería — Destiny Rising Global
 
 Abre FoundryTracker_Armeria.exe con MuMu y tu personaje de Destiny Rising Global conectados. La aplicación busca el juego y lee tus contadores automáticamente. La primera lectura tras abrir el juego puede tardar entre 10 y 20 segundos en el equipo donde se probó y los refrescos unos pocos segundos; el tiempo depende del emulador. No requiere instalar Python ni ADB por separado.
 
@@ -9,6 +9,7 @@ Abre FoundryTracker_Armeria.exe con MuMu y tu personaje de Destiny Rising Global
 - Búsqueda por nombre/ID, filtro por colección y solo pendientes; ordenación por encabezados.
 - Botón de actualización y actualización opcional 30 segundos después de finalizar cada lectura.
 - Vista compacta siempre visible (ganancias de la sesión y las tres armas más cerca de 1.000) y avisos en la esquina de la pantalla al llegar un arma a 1.000 bajas o un logro a 8/8.
+- Seguir un arma: en la ficha de un arma, **Seguir en vista compacta** deja solo esa arma encima del juego (bajas sobre 1.000, barra, lo que falta y lo ganado). Al llegar a 1.000 propone la siguiente más cercana de su colección; **Ver todo** vuelve a la vista general.
 - Exportación manual a CSV o JSON.
 
 “Sin registro” indica que el mapa del juego no contenía ese ID, no un cero medido. Los contadores se agrupan por ID de diseño, no por roll o copia individual. El catálogo contiene 117 definiciones vinculadas a las seis colecciones; no implica que todas sigan obtenibles.
@@ -30,6 +31,25 @@ El programa lee memoria del proceso a través de ADB. No escribe memoria, inyect
 El ejecutable incluye un catálogo de armas, no datos privados de la cuenta ni direcciones de la sesión original. Localiza el intérprete, el personaje y sus propiedades de nuevo cada vez. Los datos mostrados se mantienen en memoria y solo se guardan si eliges exportarlos. El empaquetador extrae temporalmente Python/Tk/ADB para ejecutar el programa.
 
 Una nueva lectura oculta los resultados anteriores hasta validar la sesión actual. Si detecta un reinicio o cambio de personaje durante la lectura, descarta el resultado. Una discrepancia entre las armas sobre 1.000 bajas y el contador del logro aparece en la barra de estado para revisarla.
+
+## Seguridad y riesgo de baneo
+
+**Qué se ejecuta en el emulador.** Estos son los únicos comandos que Foundry Tracker puede enviar por ADB. Desde la 1.0.0, cualquier otro se rechaza antes de ejecutarse (`src/readonly.py`, cubierto por los tests). Así, ni un error, ni un catálogo editado, ni un `engine.json` pueden hacer que el programa haga otra cosa:
+
+- `id` como root: comprobar que el acceso root de MuMu está activo.
+- `pidof com.netease.g108na` y `cat /proc/sys/kernel/random/boot_id`: encontrar el juego y distinguir instancias del emulador.
+- `cat /proc/<pid>/maps` como root: listar las regiones de memoria del juego.
+- `dd if=/proc/<pid>/mem … status=none` como root: leer páginas de memoria. `if=` es lectura; nunca hay un `of=`.
+- `adb devices`, `adb connect 127.0.0.1:16384` y `adb kill-server`: gestionar el servidor ADB local del PC.
+
+**Lo que nunca hace.** Escribir en la memoria del juego, inyectar código, enganchar un depurador, tocar los archivos del juego, enviar toques o teclas, jugar por ti, desbloquear nada o usar internet. El shell root solo existe mientras dura una lectura y se cierra al terminar.
+
+**¿Me pueden banear?** No se puede descartar. Leer la memoria de un juego con un programa externo puede ir contra sus Términos de servicio aunque no se cambie nada, y solo el editor decide qué sanciona. Foundry Tracker no intenta esconderse del anticheat del juego ni lo hará: esconderse es lo que hacen los trucos. Su protección es ser transparente con lo que hace, no cambiar nunca el juego y no dar ninguna ventaja al jugar. Si quieres riesgo cero, no lo uses.
+
+**Para usarlo con seguridad.**
+- Descárgalo solo desde la página de Releases de este repositorio y comprueba el SHA-256 de las notas de la versión. La compilación se puede reproducir desde el código (`build.ps1`).
+- El acceso root de MuMu da control total a cualquier app del emulador. Si no vas a usar el tracker en un tiempo, puedes desactivarlo y volver a activarlo cuando lo necesites.
+- Algunos antivirus marcan cualquier ejecutable de PyInstaller. La compilación no usa UPX, que evita la mayoría de falsos positivos; si el tuyo sigue avisando, comprueba el SHA-256 o compílalo tú.
 
 ## Verificación realizada
 
@@ -103,3 +123,4 @@ Solo cambió src/gallery.py: el lector (tracker.py y memory_reader.py) es el mis
 - 0.8.2: a veces `emulator-5554` no responde a adb (sobre todo justo después de arrancar el servidor) y toda la lectura fallaba a los 15 s con el comando de adb en crudo. `discover()` consulta los dispositivos en paralelo (`probe()`, 5 s como máximo cada uno) y, en cuanto uno responde, los demás tienen 1,5 s más (`PROBE_GRACE`): las copias del mismo emulador y un segundo emulador real responden igual de rápido, una conexión colgada se ignora. Si ninguno responde, o adb se agota a mitad de lectura, sale un mensaje traducido en lugar del comando.
 - 0.9.0: vista compacta y avisos (`mini.py`). `MiniWindow` es una ventana pequeña siempre encima (`-topmost`) con lo ganado en la sesión o desde la última lectura, las tres armas pendientes más cerca de 1.000 (una línea por ID de arma) y un botón para actualizar; recuerda su posición y si estaba abierta (`mini_geometry`, `mini_open` en settings.json). `Toasts` muestra avisos sin borde en la esquina inferior derecha del área de trabajo, apilados, con sonido de Windows y cierre a los 7 s o con un clic. `history.milestones()` decide los avisos comparando con la lectura anterior: armas que cruzan 1.000 (una vez por ID) y logros que llegan a 8/8; sin lectura previa no avisa, y más de 4 hitos en una lectura se resumen en un aviso. Actualización automática cada 30 s (`AUTO_MS`). ADB: cada ventana se registra en `%LOCALAPPDATA%\FoundryTracker\instances` y al cerrarse (`adb_runtime.release()`) solo detiene el servidor si no queda otra ventana viva; antes, cerrar una ventana cortaba el adb de la otra.
 - 0.9.1: la ventana principal se abre centrada en el área de trabajo (la pantalla sin la barra de tareas), con la barra de título incluida; antes Windows la colocaba donde quisiera. `mini.window_frame()` da el grosor del borde y de la barra de título (`GetSystemMetrics`), porque Tk coloca el marco exterior y no el contenido. El alto se ajusta también al área de trabajo para que la ventana quepa entera.
+- 1.0.0: seguir un arma en la vista compacta. La ficha del arma (`Inspector`) tiene abajo un botón dibujado en el lienzo, **Seguir en vista compacta** o **Dejar de seguir**, que llama a `MiniWindow.follow()`; el arma seguida se guarda como `mini_weapon` en settings.json y la vista compacta vuelve a abrirse con ella. En ese modo muestra la imagen, el nombre, sus colecciones, bajas sobre 1.000 con barra y porcentaje, lo que falta y lo ganado en la sesión o desde la última lectura; mientras se lee conserva los últimos valores en lugar de vaciarse. `history.followed()` busca la fila por ID de arma (una sola aunque esté en dos colecciones) y, si ya llegó a 1.000, la pendiente más cercana de sus colecciones (sin registro cuenta como 1.000), que aparece como enlace para seguirla. **Ver todo** vuelve a la vista general. Seguridad: `readonly.py` es la lista cerrada de comandos permitidos; `tracker.command()`, el canal root de `FastReader.transfer()` (solo lecturas `dd if=/proc/<pid>/mem`) y `adb_runtime.shutdown()` pasan por ella, y cualquier otro comando lanza `readonly.Blocked` antes de ejecutarse. Un test comprueba que cada llamada a `subprocess` del código pasa por la lista. El aviso inicial añade una nota sobre el riesgo y los Términos de servicio; su ajuste pasa a `hide_notice_v1` para que todos la vean una vez.

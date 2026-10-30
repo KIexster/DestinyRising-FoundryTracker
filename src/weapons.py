@@ -88,8 +88,9 @@ class Inspector(tk.Canvas):
  """Drawer with the weapon render and its numbers; slides in from the right of the collection view."""
  WIDTH=460
  def __init__(self,master,app):
-  super().__init__(master,bg=PANEL,highlightthickness=0,bd=0);self.app=app;self.row=None;self.fill=0.0;self.shown=False
+  super().__init__(master,bg=PANEL,highlightthickness=0,bd=0);self.app=app;self.row=None;self.fill=0.0;self.shown=False;self.follow_box=None;self.follow_hover=False
   self.bind('<Configure>',lambda e:self.draw());self.bind('<Button-1>',self.click)
+  self.bind('<Motion>',lambda e:self.set_follow_hover(self.on_follow(e)));self.bind('<Leave>',lambda e:self.set_follow_hover(False))
  def open(self,row):
   self.row=row;self.fill=0.0;width=px(self.WIDTH)
   if not self.shown:
@@ -105,6 +106,12 @@ class Inspector(tk.Canvas):
   self.app.anim.tween('inspector',220,lambda t:self.place_configure(x=width*t),done=self.place_forget)
  def click(self,event):
   if unit(event.x)>size(self)[0]-48 and unit(event.y)<48:self.close()
+  elif self.on_follow(event):
+   mini=self.app.mini;mini.follow(None if mini.weapon==self.row['weapon_id'] else self.row['weapon_id'])
+ def on_follow(self,event):
+  box=self.follow_box;return bool(box) and box[0]<=unit(event.x)<=box[2] and box[1]<=unit(event.y)<=box[3]
+ def set_follow_hover(self,hover):
+  if hover!=self.follow_hover:self.follow_hover=hover;self.configure(cursor='hand2' if hover else '');self.draw()
  def draw(self):
   self.delete('all')
   if not self.row:return
@@ -128,4 +135,10 @@ class Inspector(tk.Canvas):
   rounded(self,26,bar+19,26+tw,bar+41,11,fill=chip,outline='');self.create_text(26+tw/2,bar+30,text=label,fill=ink,font=self.app.small)
   gain=self.app.gains().get(row['weapon_id'])
   if gain:self.create_text(26,bar+66,text=self.app.T('gain_session' if self.app.history.session else 'gain_read',kills=self.app.num(gain)),anchor='w',fill=DONE,font=(FONT,11,'bold'))
+  # Footer button: follow this weapon in the compact view, or go back to its general view.
+  following=self.app.mini.weapon==row['weapon_id'];top=max(bar+92,h-70);self.follow_box=(26,top,w-26,top+44)
+  if following:fill,ink=mix(PANEL_HI,FG,0.08) if self.follow_hover else PANEL_HI,FG
+  else:fill,ink='#f2d595' if self.follow_hover else ACCENT,INK
+  rounded(self,26,top,w-26,top+44,10,fill=fill,outline='')
+  self.create_text(w/2,top+22,text=self.app.T('follow_stop' if following else 'follow'),fill=ink,font=(FONT,10,'bold'))
   finish(self)

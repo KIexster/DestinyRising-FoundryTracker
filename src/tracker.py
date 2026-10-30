@@ -1,6 +1,7 @@
 from pathlib import Path
 import json,struct,subprocess,hashlib,datetime,time,atexit,concurrent.futures
 from memory_reader import FastReader
+import readonly
 FLAGS=getattr(subprocess,'CREATE_NO_WINDOW',0)
 # CPython 3.12 layout of the game's interpreter and the C++ chain from the player to its property table.
 # catalog.json "engine" and %APPDATA%\FoundryTracker\engine.json override any of these values.
@@ -21,7 +22,7 @@ def outdated(patch,catalog):
  if patch:return TrackerError(f'Build {patch} no validada. Esta versión admite {catalog["expected_patch"]}. Actualiza el lector.')
  return TrackerError('Motor no compatible con esta versión del lector. Se detuvo la lectura; hace falta actualizar Foundry Tracker.')
 def command(adb,args,timeout=15,check=True):
- p=subprocess.run([str(adb)]+args,capture_output=True,timeout=timeout,creationflags=FLAGS)
+ p=subprocess.run([str(adb)]+readonly.check(args),capture_output=True,timeout=timeout,creationflags=FLAGS)
  if check and p.returncode:raise TrackerError('ADB no pudo completar la lectura. Comprueba MuMu y su acceso root.')
  return p.stdout.decode('utf-8','replace').strip()
 def probe(adb,serial,package):
@@ -203,6 +204,7 @@ def collect(adb,catalog,status=lambda message:None,hints=None,warm=None):
   if not verified:raise outdated(patch,catalog) from exc
   raise
  except TrackerError:raise
+ except readonly.Blocked as exc:raise TrackerError(str(exc)) from exc
  except subprocess.TimeoutExpired as exc:raise TrackerError('ADB tardó demasiado en responder. Vuelve a actualizar; si se repite, reinicia MuMu.') from exc
  except Exception as exc:
   if not verified:raise outdated(patch,catalog) from exc

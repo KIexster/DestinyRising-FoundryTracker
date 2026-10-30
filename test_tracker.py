@@ -2,7 +2,7 @@ import unittest,json,sys,os,tempfile,struct,re,subprocess,time
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).parent/'src'))
-import tracker,adb_runtime,resources,memory_reader,history
+import tracker,adb_runtime,resources,memory_reader,history,readonly
 # gallery.UPDATE_BUILD: the reader messages that the window turns into "download the new version".
 UPDATE_BUILD=re.compile(r'Build (\S+) no validada\. Esta versión admite (\S+)\.')
 class DetectionTests(unittest.TestCase):
@@ -162,7 +162,8 @@ class BatchedReadTests(unittest.TestCase):
   fetched.clear();self.assertEqual(s.module('Game.Game',1070),6070);self.assertEqual(fetched,[])
 def read_rows(kills,progress):
  """A read with two collections: 1 holds w1, w2 and the shared w3; 2 holds w3 and w4."""
- rows=[dict(weapon_id=w,weapon=w.upper(),achievement_id=a,kills=kills.get(w),completed=(kills.get(w) or 0)>=1000) for a,w in [(1,'w1'),(1,'w2'),(1,'w3'),(2,'w3'),(2,'w4')]]
+ rows=[dict(weapon_id=w,weapon=w.upper(),achievement_id=a,collection=f'C{a}',kills=kills.get(w),remaining=max(0,1000-kills[w]) if w in kills else None,
+  completed=(kills.get(w) or 0)>=1000) for a,w in [(1,'w1'),(1,'w2'),(1,'w3'),(2,'w3'),(2,'w4')]]
  return dict(rows=rows,summary=[dict(id=a,name=f'C{a}',progress=p) for a,p in progress.items()])
 class MilestoneTests(unittest.TestCase):
  def test_weapon_crossing_the_goal_is_announced_once(self):
@@ -177,6 +178,49 @@ class MilestoneTests(unittest.TestCase):
   self.assertEqual(history.milestones({'w1':1000},None,read_rows({'w1':1000},{1:8,2:0})),[('achievement',dict(id=1,name='C1',progress=8))])
  def test_first_read_ever_announces_nothing(self):
   self.assertEqual(history.milestones(None,None,read_rows({'w1':1500},{1:8,2:8})),[])
+class FollowTests(unittest.TestCase):
+ def test_pending_weapon_has_no_next(self):
+  info=history.followed(read_rows({'w1':742},{1:0,2:0})['rows'],'w1')
+  self.assertEqual((info['row']['kills'],info['collections'],info['next']),(742,['C1'],None))
+ def test_shared_weapon_lists_both_collections(self):
+  self.assertEqual(history.followed(read_rows({'w3':10},{1:0,2:0})['rows'],'w3')['collections'],['C1','C2'])
+ def test_done_weapon_suggests_the_closest_pending_one_of_its_collections(self):
+  info=history.followed(read_rows({'w1':400,'w2':500,'w3':1200,'w4':800},{1:2,2:1})['rows'],'w3')
+  self.assertEqual(info['next']['weapon_id'],'w4')
+ def test_weapon_without_record_counts_as_a_full_goal(self):
+  self.assertEqual(history.followed(read_rows({'w1':1000,'w3':10},{1:1,2:0})['rows'],'w1')['next']['weapon_id'],'w3')
+ def test_everything_done_or_absent(self):
+  rows=read_rows({'w1':1000,'w2':1000,'w3':1000},{1:3,2:1})['rows']
+  self.assertIsNone(history.followed(rows,'w1')['next']);self.assertIsNone(history.followed(rows,'w9'))
+class ReadOnlyTests(unittest.TestCase):
+ PACKAGE=resources.CATALOG['package']
+ def test_every_command_the_app_sends_is_allowed(self):
+  for args in [['devices'],['connect','127.0.0.1:16384'],['kill-server'],['-s','emulator-5554','shell','su','0','id'],
+   ['-s','emulator-5554','shell','su','0','cat','/proc/4321/maps'],['-s','emulator-5554','shell','pidof',self.PACKAGE],
+   ['-s','127.0.0.1:16384','shell',f'echo B:$(cat /proc/sys/kernel/random/boot_id) P:$(pidof {self.PACKAGE})'],['-s','emulator-5554','shell','-T','su','0','sh'],
+   ['-s','emulator-5554','exec-out','su','0','dd','if=/proc/4321/mem','bs=4096','skip=12','count=1','status=none']]:
+   self.assertIs(readonly.check(args),args)
+  reads=';'.join(f'dd if=/proc/4321/mem bs=4096 skip={s} count=3 status=none' for s in (5,90))
+  self.assertEqual(readonly.check_channel(reads),reads)
+ def test_writes_and_other_commands_are_blocked(self):
+  for args in [['-s','e','shell','su','0','dd','if=/dev/zero','of=/proc/4321/mem','bs=4096','seek=1','count=1'],['-s','e','shell','input','tap','10','10'],
+   ['install','tool.apk'],['-s','e','push','x','/data/local/tmp'],['-s','e','shell','su','0','sh','-c','id'],['-s','e','shell','su','0','id;reboot'],
+   ['-s','e','shell','pidof','com.netease.g108na;rm','-rf','/sdcard'],['connect','203.0.113.5:5555'],['-s','e','shell','su','0','cat','/data/data/x/shared_prefs/a.xml']]:
+   with self.assertRaises(readonly.Blocked,msg=args):readonly.check(args)
+  for cmd in ['id','dd if=/proc/1/mem bs=4096 skip=1 count=1 status=none;echo 0 > /proc/sys/kernel/x','dd if=/proc/1/mem of=/sdcard/x bs=4096 skip=1 count=1 status=none',
+   'dd if=/dev/zero of=/proc/1/mem bs=4096 seek=1 count=1']:
+   with self.assertRaises(readonly.Blocked,msg=cmd):readonly.check_channel(cmd)
+ def test_root_shell_never_receives_a_blocked_command(self):
+  reader=memory_reader.FastReader();reader.channel=unittest.mock.MagicMock()
+  with self.assertRaises(readonly.Blocked):reader.transfer('rm -rf /data',1)
+  reader.channel.stdin.write.assert_not_called()
+ def test_blocked_command_becomes_a_reader_message(self):
+  with patch.object(tracker,'discover',side_effect=readonly.Blocked('Comando bloqueado por seguridad (Foundry Tracker solo lee): x')):
+   with self.assertRaisesRegex(tracker.TrackerError,'Comando bloqueado'):tracker.collect('adb',resources.CATALOG)
+ def test_every_process_launch_goes_through_the_allowlist(self):
+  for path in (Path(__file__).parent/'src').glob('*.py'):
+   for number,line in enumerate(path.read_text('utf-8').splitlines(),1):
+    if re.search(r'subprocess\.(run|Popen|call|check_output|check_call)\(|os\.(system|popen)\(',line):self.assertIn('readonly.check',line,f'{path.name}:{number}')
 class AdbRuntimeTests(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.instances=Path(self.tmp.name)/'instances'

@@ -42,6 +42,16 @@ def milestones(old_kills,old_progress,data):
   else:before=min(8,sum((old_kills.get(r['weapon_id']) or 0)>=GOAL for r in data['rows'] if r['achievement_id']==s['id']))
   if s['progress']>=8>before:out.append(('achievement',s))
  return out
+def followed(rows,weapon_id):
+ """The weapon the compact view follows: its row, every collection it belongs to and, once it reached GOAL, the
+ pending weapon of those collections closest to GOAL (a weapon without a record counts as GOAL to go). None if absent."""
+ mine=[r for r in rows if r['weapon_id']==weapon_id]
+ if not mine:return None
+ groups={r['achievement_id'] for r in mine};after=None
+ if mine[0]['completed']:
+  pending={r['weapon_id']:r for r in rows if r['achievement_id'] in groups and not r['completed']}.values()
+  after=min(pending,key=lambda r:(r['remaining'] if r['kills'] is not None else GOAL,r['weapon']),default=None)
+ return {'row':mine[0],'collections':list(dict.fromkeys(r['collection'] for r in mine)),'next':after}
 def shortest_path(rows,progress):
  """Fewest kills to reach 8 completed weapon IDs: the pending weapons closest to 1,000.
  A weapon without a record counts as a full 1,000 to go."""
