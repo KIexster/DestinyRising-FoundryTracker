@@ -3,7 +3,7 @@ import sys,os,json
 from pathlib import Path
 BASE=Path(getattr(sys,'_MEIPASS',Path(__file__).parent))
 CATALOG=json.loads((BASE/'catalog.json').read_text('utf-8'))
-VERSION='0.7.1'
+VERSION='0.7.2'
 GOAL=1000
 HOME=Path(os.environ.get('APPDATA',str(Path.home())))/'FoundryTracker'
 SETTINGS=HOME/'settings.json'

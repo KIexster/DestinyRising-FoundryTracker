@@ -8,7 +8,15 @@ class DetectionTests(unittest.TestCase):
   with patch.object(tracker,'command',return_value='List of devices attached\n'):
    with self.assertRaisesRegex(tracker.TrackerError,'GLOBAL abierto'):tracker.discover('adb','com.netease.g108na')
  def test_multiple_sessions_not_silently_selected(self):
-  def fake(adb,args,**kw):return 'List of devices attached\na device\nb device' if args==['devices'] else '42'
+  def fake(adb,args,**kw):return 'List of devices attached\na device\nb device' if args==['devices'] else f'B:boot-{args[1]} P:42'
+  with patch.object(tracker,'command',side_effect=fake):
+   with self.assertRaisesRegex(tracker.TrackerError,'varias sesiones'):tracker.discover('adb','com.netease.g108na')
+ def test_same_instance_listed_twice_is_one_session(self):
+  def fake(adb,args,**kw):return 'List of devices attached\n127.0.0.1:16384\tdevice\nemulator-5554\tdevice' if args==['devices'] else 'B:e76ef978 P:2912'
+  with patch.object(tracker,'command',side_effect=fake):
+   self.assertEqual(tracker.discover('adb','com.netease.g108na'),('127.0.0.1:16384','2912'))
+ def test_missing_boot_id_keeps_serials_apart(self):
+  def fake(adb,args,**kw):return 'List of devices attached\na device\nb device' if args==['devices'] else 'B: P:42'
   with patch.object(tracker,'command',side_effect=fake):
    with self.assertRaisesRegex(tracker.TrackerError,'varias sesiones'):tracker.discover('adb','com.netease.g108na')
  def test_incompatible_engine_rejected_before_interpreter_read(self):

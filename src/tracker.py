@@ -12,10 +12,13 @@ def discover(adb,package):
  if not serials:
   command(adb,['connect','127.0.0.1:16384'],check=False)
   raw=command(adb,['devices']);serials=[x.split()[0] for x in raw.splitlines()[1:] if len(x.split())>=2 and x.split()[1]=='device']
- found=[]
+ found={}
  for serial in serials:
-  pid=command(adb,['-s',serial,'shell','pidof',package],check=False).split()
-  if pid and pid[0].isdigit():found.append((serial,pid[0]))
+  # MuMu can be listed twice (emulator-5554 and 127.0.0.1:16384); boot_id tells apart real instances.
+  out=command(adb,['-s',serial,'shell',f'echo B:$(cat /proc/sys/kernel/random/boot_id) P:$(pidof {package})'],check=False).split()
+  boot=next((x[2:] for x in out if x.startswith('B:')),'');pid=next((x[2:] for x in out if x.startswith('P:')),'')
+  if pid.isdigit():found.setdefault(boot or serial,(serial,pid))
+ found=list(found.values())
  if not found:raise TrackerError('No se encontró Destiny Rising GLOBAL abierto. Enciende MuMu, habilita ADB y abre tu personaje en el juego.')
  if len(found)!=1:raise TrackerError('Hay varias sesiones del juego abiertas. Deja abierta solo la que quieres consultar.')
  return found[0]
