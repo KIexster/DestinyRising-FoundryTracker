@@ -100,8 +100,7 @@
   "notice_body": "Foundry Tracker reads your progress from Destiny Rising Global running in MuMu Player. It needs root access in MuMu to do it:",
   "notice_steps": "1.  Open MuMu Player and go to Settings center → Other.\n2.  Turn on Root permission.\n3.  Restart MuMu and load your character in the game.",
   "notice_ok": "Got it",
-  "notice_hide": "Don't show this again",
-  "notice_risk": "It only reads: it doesn't change the game, send data anywhere or play for you. Even so, reading the game's memory with an outside program may go against its Terms of Service, and nobody can guarantee there will be no penalties. Use it at your own risk."
+  "notice_hide": "Don't show this again"
  },
  "tracker": {
   "ADB no pudo completar la lectura. Comprueba MuMu y su acceso root.": "ADB could not complete the read. Check MuMu and its root access.",

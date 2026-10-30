@@ -100,8 +100,7 @@
   "notice_body": "Foundry Tracker lee tu progreso de Destiny Rising Global abierto en MuMu Player. Para hacerlo necesita el acceso root de MuMu:",
   "notice_steps": "1.  Abre MuMu Player y ve a Centro de configuración → Otros.\n2.  Activa el Permiso de root.\n3.  Reinicia MuMu y entra con tu personaje en el juego.",
   "notice_ok": "Entendido",
-  "notice_hide": "No volver a mostrar",
-  "notice_risk": "Solo lee: no cambia el juego, no envía datos a ningún sitio y no juega por ti. Aun así, leer la memoria del juego con un programa externo puede ir contra sus Términos de servicio y nadie puede garantizar que no haya sanciones. Úsalo bajo tu responsabilidad."
+  "notice_hide": "No volver a mostrar"
  },
  "tracker_patterns": [],
  "tracker": {}
