@@ -59,6 +59,12 @@ class DetectionTests(unittest.TestCase):
   r=object.__new__(tracker.Session);values={0x120:0x200,0x210:0x300,0x310:0x400,0x318:0,0x428:1,0x420:0x500,0x510:0x600,0x500:0x500}
   r.q=lambda a:values[a];r.read=lambda a,n: b'\0' if n==1 else (123).to_bytes(8,'little');r.cppstr=lambda a:'aw01a01'
   with self.assertRaisesRegex(tracker.TrackerError,'Mapa inconsistente'):r.int_map(0x100)
+ def test_bytes_after_a_value_are_ignored(self):
+  # Build 202611102305 leaves the 8 bytes after each value uninitialised: only node+32 holds the counter.
+  r=object.__new__(tracker.Session);values={0x120:0x200,0x210:0x300,0x310:0x400,0x318:0,0x428:1,0x420:0x500,0x510:0x600,0x500:0}
+  mem={0x614:b'\0',0x618:(7).to_bytes(8,'little'),0x520:(884).to_bytes(8,'little'),0x528:b'\xf0\x96dV\xbb~\0\0'}
+  r.q=lambda a:values[a];r.read=lambda a,n:mem[a][:n]
+  self.assertEqual(r.int_map(0x100),{'7':884})
 def fake_memory(runtime=None,size=0x80000,decoy=None):
  """A Session over 'size' bytes of libGame data at 0x200000, with _PyRuntime at 'runtime' (offset into that data)."""
  data=0x200000;mem=bytearray(size);modules=0x900000
@@ -234,17 +240,17 @@ class AdbRuntimeTests(unittest.TestCase):
   with patch.object(adb_runtime,'shutdown') as stop:adb_runtime.release('adb')
   stop.assert_called_once_with('adb');self.assertEqual(list(self.instances.iterdir()),[])
  def test_source_run_uses_bundled_adb_on_private_port(self):
-  with patch.dict(os.environ),patch.object(adb_runtime,'BASE',Path('src_dir')):
+  with patch.dict(os.environ),patch.object(adb_runtime,'BASE',Path('src_dir')),patch.object(adb_runtime,'verify_adb'):
    self.assertEqual(adb_runtime.prepare(),Path('src_dir')/'adb'/'adb.exe');self.assertEqual(os.environ['ANDROID_ADB_SERVER_PORT'],'5041')
   self.assertEqual([p.name for p in self.instances.iterdir()],[str(os.getpid())])
  def test_frozen_run_copies_adb_out_of_temp_folder(self):
   with tempfile.TemporaryDirectory() as tmp:
    base=Path(tmp)/'mei';local=Path(tmp)/'local';(base/'adb').mkdir(parents=True)
    for name in adb_runtime.FILES:(base/'adb'/name).write_bytes(name.encode())
-   with patch.dict(os.environ),patch.object(adb_runtime,'BASE',base),patch.object(adb_runtime,'LOCAL',local),patch.object(sys,'_MEIPASS',str(base),create=True),patch.object(adb_runtime,'shutdown') as stop:
+   with patch.dict(os.environ),patch.object(adb_runtime,'BASE',base),patch.object(adb_runtime,'LOCAL',local),patch.object(sys,'_MEIPASS',str(base),create=True),patch.object(adb_runtime,'shutdown') as stop,patch.object(adb_runtime,'verify_adb'):
     self.assertEqual(adb_runtime.prepare(),local/'adb.exe');stop.assert_not_called()
     self.assertTrue(all((local/n).read_bytes()==n.encode() for n in adb_runtime.FILES))
     adb_runtime.prepare();stop.assert_not_called()
     (base/'adb'/'adb.exe').write_bytes(b'new build');adb_runtime.prepare()
-    stop.assert_called_once_with(local/'adb.exe');self.assertEqual((local/'adb.exe').read_bytes(),b'new build')
+    stop.assert_called_once_with(base/'adb'/'adb.exe');self.assertEqual((local/'adb.exe').read_bytes(),b'new build')
 if __name__=='__main__':unittest.main()

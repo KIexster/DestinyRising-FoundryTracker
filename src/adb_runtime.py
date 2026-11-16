@@ -8,6 +8,7 @@ import os,sys,shutil,subprocess,hashlib
 from pathlib import Path
 from resources import BASE
 import readonly
+from integrity import verify_adb
 PORT='5041'
 FILES=('adb.exe','AdbWinApi.dll','AdbWinUsbApi.dll')
 LOCAL=Path(os.environ.get('LOCALAPPDATA',str(Path.home())))/'FoundryTracker'/'adb'
@@ -16,15 +17,18 @@ FLAGS=getattr(subprocess,'CREATE_NO_WINDOW',0)
 def same(a,b):return b.exists() and a.stat().st_size==b.stat().st_size and hashlib.sha256(a.read_bytes()).digest()==hashlib.sha256(b.read_bytes()).digest()
 def prepare():
  """Return the adb.exe to use. Every adb call made by this process, memory_reader's included, inherits the port."""
+ os.environ.pop('ADB_SERVER_SOCKET',None);os.environ.pop('ANDROID_ADB_SERVER_ADDRESS',None)
  os.environ['ANDROID_ADB_SERVER_PORT']=PORT;register()
  source=BASE/'adb'
+ verify_adb(source)
  if not hasattr(sys,'_MEIPASS'):return source/'adb.exe'
  try:
   LOCAL.mkdir(parents=True,exist_ok=True)
   stale=[name for name in FILES if not same(source/name,LOCAL/name)]
   # A server left by a crashed older version still holds its files; stop it before replacing them.
-  if stale and (LOCAL/'adb.exe').exists():shutdown(LOCAL/'adb.exe')
+  if stale and (LOCAL/'adb.exe').exists():shutdown(source/'adb.exe')
   for name in stale:shutil.copy2(source/name,LOCAL/name)
+  verify_adb(LOCAL)
   return LOCAL/'adb.exe'
  except OSError:return source/'adb.exe'
 def register():
@@ -51,5 +55,7 @@ def release(adb):
  if not others:shutdown(adb)
 def shutdown(adb):
  """Stop this app's own server (port 5041)."""
- try:subprocess.run([str(adb)]+readonly.check(['kill-server']),capture_output=True,timeout=5,creationflags=FLAGS)
- except (OSError,subprocess.TimeoutExpired):pass
+ try:
+  verify_adb(Path(adb).parent)
+  subprocess.run([str(adb)]+readonly.check(['kill-server']),capture_output=True,timeout=5,creationflags=FLAGS)
+ except (OSError,RuntimeError,subprocess.TimeoutExpired):pass

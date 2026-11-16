@@ -12,6 +12,8 @@ SCAN_PAGES=64
 MODULE_BATCH=64
 PROBE_TIMEOUT=5
 PROBE_GRACE=1.5
+# Each counter property is an integer map whose Python class names what it holds.
+COUNTER_TYPES={'AttachmentProcess_weaponKillData':'WeaponKillData','Achievement_listenAchiData':'ListenAchiData','Achievement_finishAchiData':'FinishAchiData'}
 class TrackerError(Exception):pass
 class StructureError(TrackerError):
  """Memory without the expected layout. On an unverified build it means the reader needs an update."""
@@ -140,7 +142,8 @@ class Session(FastReader):
    if kind==0:key=struct.unpack('<q',self.read(keyptr+24,8))[0]
    elif kind==1:key=self.cppstr(keyptr+24)
    else:raise StructureError('Tipo de clave no compatible.')
-   if self.read(node+40,1)[0]!=0:raise StructureError('Tipo de valor no compatible.')
+   # The int64 value sits at node+32. From build 202611102305 the 8 bytes after it are left uninitialised, so the
+   # map's value type is checked once through its Python class (COUNTER_TYPES) instead of per node.
    value=struct.unpack('<q',self.read(node+32,8))[0]
    out[str(key)]=value;node=self.q(node)
   if len(out)!=count:raise TrackerError('Los contadores cambiaron durante la lectura. Actualiza de nuevo.')
@@ -150,8 +153,7 @@ class Session(FastReader):
   for off in self.engine['player_storage']:storage=self.q(storage+off)
   wrap=self.q(storage+16);meta=self.q(wrap);table=self.q(meta+32);node=self.q(table+32);count=self.q(table+40)
   if not 1<=count<=10000:raise StructureError('No se reconoce la tabla de propiedades de esta build.')
-  vec=self.q(self.q(wrap+24)+24);seen=set();out={}
-  wanted={'AttachmentProcess_weaponKillData','Achievement_listenAchiData','Achievement_finishAchiData'}
+  vec=self.q(self.q(wrap+24)+24);seen=set();out={};wanted=set(COUNTER_TYPES)
   while node:
    if node in seen or len(seen)>=10000:raise StructureError('Tabla de propiedades inconsistente.')
    seen.add(node);key=self.string(self.q(node+16));desc=self.q(node+24)
@@ -160,7 +162,9 @@ class Session(FastReader):
     if not 0<=idx<count:raise StructureError('Índice de propiedad inválido.')
     at=vec+idx*16
     if self.read(at+8,1)[0]!=4:raise StructureError('El contador tiene un formato no compatible.')
-    value=self.q(at);out[key]=self.int_map(value) if value else {}
+    value=self.q(at)
+    if value and self.typ(value)!=COUNTER_TYPES[key]:raise StructureError('El contador tiene un formato no compatible.')
+    out[key]=self.int_map(value) if value else {}
     if wanted.issubset(out):break
    node=self.q(node)
   if not wanted.issubset(out):raise TrackerError('Faltan propiedades del personaje. Espera a terminar la carga.')

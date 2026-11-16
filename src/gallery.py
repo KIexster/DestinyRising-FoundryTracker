@@ -7,8 +7,7 @@ import sys,re,json,csv,time,math,threading,queue,datetime
 from pathlib import Path
 import tkinter as tk
 from tkinter import ttk,filedialog,messagebox,font as tkfont
-from tracker import collect
-import theme,i18n,sharecard,adb_runtime
+import theme,i18n,sharecard
 from resources import BASE,CATALOG,VERSION,GOAL,load_settings,save_settings
 from theme import BG,PANEL,PANEL_HI,LINE,MUTED,DIM,FG,ACCENT,DONE,ARC,ERROR,STATUS,SPLASH_BG,FONT,px,size,finish,mix,ease_in_out,rounded
 from widgets import Animator,FlatButton,Toggle,Segmented
@@ -70,7 +69,7 @@ class App:
   self.retranslate();self.show(self.home,0)
   self.intro()
   root.bind('<Escape>',lambda e:self.escape());root.bind('<Control-r>',lambda e:self.refresh());root.bind('<F5>',lambda e:self.refresh())
-  root.protocol('WM_DELETE_WINDOW',self.close);root.after(100,self.poll);root.after(50,self.pulse);root.after(700,self.refresh)
+  root.protocol('WM_DELETE_WINDOW',self.close);root.after(100,self.poll);root.after(50,self.pulse);root.after(700,self.refresh) if demo or adb is not None else None
   if self.settings.get('mini_open') and not demo:root.after(1600,self.mini.open)
  # Opening animation and the root notice
  def intro(self):
@@ -321,6 +320,7 @@ class App:
   def work():
    try:
     if self.demo:time.sleep(1.2);self.events.put(('data',json.loads(Path(self.demo[1]).read_text('utf-8'))));return
+    from tracker import collect
     self.events.put(('data',collect(self.adb,CATALOG,lambda msg:self.events.put(('status',msg)),self.settings.get('runtime_offsets'),self.settings.get('warm'))))
    except Exception as exc:self.events.put(('error',str(exc)))
   threading.Thread(target=work,daemon=True).start()
@@ -403,7 +403,9 @@ class App:
   self.closed=True
   if self.auto_id:self.root.after_cancel(self.auto_id)
   self.mini.remember();self.root.destroy()
-  if self.adb:adb_runtime.release(self.adb)
+  if self.adb:
+   import adb_runtime
+   adb_runtime.release(self.adb)
 def enable_dpi_awareness():
  """Sharp text on 125 % / 150 % displays; theme.px() and theme.finish() keep the layout proportions."""
  try:
@@ -412,11 +414,13 @@ def enable_dpi_awareness():
   except (AttributeError,OSError):ctypes.windll.user32.SetProcessDPIAware()
  except Exception:pass
 def main():
+ import adb_runtime
  demo=None
  if '--demo' in sys.argv:
   path=Path(sys.argv[sys.argv.index('--demo')+1]);demo=(path.name,str(path))
  adb=None if demo else adb_runtime.prepare()
  if '--diagnostic' in sys.argv:
+  from tracker import collect
   try:data=collect(adb,CATALOG);Path(sys.argv[sys.argv.index('--diagnostic')+1]).write_text(json.dumps(data,indent=2),'utf-8')
   finally:adb_runtime.release(adb)
   return

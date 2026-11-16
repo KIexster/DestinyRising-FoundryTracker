@@ -52,6 +52,8 @@ class FastReader(Reader):
   if executor:executor.shutdown(wait=False,cancel_futures=True)
  def transfer(self,cmd,n):
   """One round trip on the root shell: cmd must write exactly n bytes, which come back base64-encoded."""
+  if not isinstance(n,int) or not 0<n<=16*1024*1024:raise ValueError('Bounded transfer exceeded')
+  readonly.check_channel(cmd)
   if not getattr(self,'channel',None):
    self.channel=subprocess.Popen([self.adb]+readonly.check(['-s',self.serial,'shell','-T','su','0','sh']),stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
    self.executor=concurrent.futures.ThreadPoolExecutor(max_workers=1);atexit.register(self.close)
@@ -60,7 +62,8 @@ class FastReader(Reader):
   def receive():
    lines=[];total=0
    while True:
-    line=self.channel.stdout.readline()
+    line=self.channel.stdout.readline(8193)
+    if len(line)>8192:raise ValueError('Oversized response line')
     if not line:raise ValueError('Channel ended')
     line=line.strip()
     if line==b'READ_END':break

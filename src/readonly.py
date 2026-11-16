@@ -14,6 +14,8 @@ CHANNEL=re.compile(rf'{READ}(?:;{READ})*')
 class Blocked(RuntimeError):pass
 def check(args):
  """args: an adb command line without the adb path. '-s <serial>' only picks the emulator."""
+ if not isinstance(args,list) or not args or any(not isinstance(a,str) or any(c in a for c in '\x00\r\n') for a in args):raise Blocked('Invalid ADB arguments')
+ if args[:1]==['-s'] and (len(args)<3 or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}',args[1])):raise Blocked('Invalid device selector')
  line=' '.join(args[2:] if args[:1]==['-s'] else args)
  if not COMMAND.fullmatch(line):raise Blocked(f'Comando bloqueado por seguridad (Foundry Tracker solo lee): {line}')
  return args

@@ -13,3 +13,29 @@
 __pycache__/
 # adb.exe, AdbWinApi.dll and AdbWinUsbApi.dll go here before building (see README).
 /src/adb/
+
+!/test_security.py
+!/SECURITY.md
+
+!/test_offline.py
+!/OFFLINE.md
+
+!/test_profile_api.py
+!/api_research/
+
+# Raw SDK scripts/evidence can contain embedded vendor configuration: keep local.
+/api_research/Scan_Originales/
+/api_research/Originales/
+/api_research/Metadata/
+/api_research/full_scan_hits.json
+/api_research/extended_scan_hits.json
+/api_research/APK_Dex_Local/
+/api_research/APK_Native_Local/
+/api_research/APK_Manifest_Local/
+/api_research/APK_Assets_Local/
+/api_research/Service_Tables_Local/
+/api_research/Bundle_Verification_Local/
+/api_research/CLI_Test_Local/
+/api_research/apk_source_path.local.json
+/api_research/apk_inventory.txt
+/api_research/*.zip
